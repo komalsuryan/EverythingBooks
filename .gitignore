@@ -36,3 +36,6 @@ build/
 
 ### Mac OS ###
 .DS_Store
+
+### Sensitive or high-churn files ###
+/src/main/resources/credentials.properties
