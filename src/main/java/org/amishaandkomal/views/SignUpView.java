@@ -6,7 +6,10 @@ import org.amishaandkomal.DatabaseSetup;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.sql.*;
 
 public class SignUpView extends JDialog {
@@ -99,7 +102,7 @@ public class SignUpView extends JDialog {
                 if (emailTextField.getText().isEmpty()) {
                     emailErrorLabel.setText("Email cannot be empty");
                     emailErrorLabel.setVisible(true);
-                } else if (!emailTextField.getText().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+                } else if (!emailTextField.getText().matches("^(?=.{1,64}@)[A-Za-z0-9\\\\+_-]+(\\\\.[A-Za-z0-9\\\\+_-]+)*@[^-][A-Za-z0-9+-]+(\\.[A-Za-z0-9+-]+)*(\\.[A-Za-z]{2,})$")) {
                     emailErrorLabel.setText("Invalid Email");
                     emailErrorLabel.setVisible(true);
                 } else {
