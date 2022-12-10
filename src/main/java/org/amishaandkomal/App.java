@@ -7,13 +7,15 @@ import org.amishaandkomal.views.LoginView;
 import javax.swing.*;
 import java.awt.*;
 
+import static org.amishaandkomal.DatabaseSetup.*;
+
 public class App {
     public static void main(String[] args) {
         // write your code here
         try {
+            setupDatabase();
             setUpGlobalGui();
-            UIManager.put( "TextComponent.arc", 5 );
-            JFrame jFrame = new JFrame("Hospital Management System");
+            JFrame jFrame = new JFrame("Everything Books");
             jFrame.setContentPane(new LoginView().getMainPanel());
             jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             jFrame.setLocationRelativeTo(null);
@@ -23,7 +25,6 @@ public class App {
         } catch (Exception e) {
             // create a dialog to show the error
             JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
         }
     }
 
@@ -34,7 +35,6 @@ public class App {
     public static void handleException(Throwable e) {
         // create a dialog to show the error
         JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-        e.printStackTrace();
     }
 
     public static void setUpGlobalGui() {
