@@ -27,7 +27,7 @@ public class SignUpView extends JDialog {
     private JLabel firstNameLabel;
     private JLabel lastNameLabel;
     private JLabel emailLabel;
-    private JLabel passswordLabel;
+    private JLabel passwordLabel;
     private JLabel confirmPasswordLabel;
     private JLabel firstnameErrorLabel;
     private JLabel lastnameErrorLabel;
@@ -35,20 +35,41 @@ public class SignUpView extends JDialog {
     private JLabel passwordErrorLabel;
     private JLabel mismatchPasswordErrorLabel;
 
-    public SignUpView() {
+    public SignUpView(boolean admin, boolean edit, int id) {
         setContentPane(contentPane);
         setModal(true);
         getRootPane().setDefaultButton(buttonOK);
 
         // set the labels
         headingLabel.setText("Sign Up to Continue");
+        if (edit) {
+            headingLabel.setText("Edit Profile");
+        }
         firstNameLabel.setText("First Name");
         lastNameLabel.setText("Last Name");
         emailLabel.setText("Email");
-        passswordLabel.setText("Password");
+        passwordLabel.setText("Password");
         confirmPasswordLabel.setText("Confirm Password");
-        buttonOK.setText("Sign Up");
+        if (!edit) {
+            buttonOK.setText("Sign Up");
+        } else {
+            buttonOK.setText("Save");
+        }
         buttonCancel.setText("Cancel");
+
+        // if edit is true, then set the text fields to the values of the user
+        if (edit) {
+            try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery("SELECT * FROM users WHERE id = " + id);
+                resultSet.next();
+                firstNameTextField.setText(resultSet.getString("firstname"));
+                lastNameTextField.setText(resultSet.getString("lastname"));
+                emailTextField.setText(resultSet.getString("email"));
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
 
         // hide the error labels
         firstnameErrorLabel.setVisible(false);
@@ -109,10 +130,16 @@ public class SignUpView extends JDialog {
                     emailErrorLabel.setVisible(true);
                 } else {
                     // check if the email is already registered
+                    String sql;
+                    if (!edit) {
+                        sql = "SELECT * FROM users WHERE email = '" + emailTextField.getText() + "'";
+                    } else {
+                        sql = "SELECT * FROM users WHERE email = '" + emailTextField.getText() + "' AND id != " + id;
+                    }
                     try {
                         Connection connection = DriverManager.getConnection(Database.databaseUrl);
                         Statement statement = connection.createStatement();
-                        ResultSet resultSet = statement.executeQuery("SELECT * FROM users WHERE email = '" + emailTextField.getText() + "'");
+                        ResultSet resultSet = statement.executeQuery(sql);
                         if (resultSet.next()) {
                             emailErrorLabel.setText("Email already registered");
                             emailErrorLabel.setVisible(true);
@@ -158,7 +185,11 @@ public class SignUpView extends JDialog {
             }
         });
 
-        buttonOK.addActionListener(e -> onOK());
+        if (!edit) {
+            buttonOK.addActionListener(e -> onOK(admin));
+        } else {
+            buttonOK.addActionListener(e -> onOk(admin, id));
+        }
 
         buttonCancel.addActionListener(e -> onCancel());
 
@@ -174,7 +205,7 @@ public class SignUpView extends JDialog {
         contentPane.registerKeyboardAction(e -> onCancel(), KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT);
     }
 
-    private void onOK() {
+    private void onOK(boolean admin) {
         // check the validity of the fields
         if (firstNameTextField.getText().isEmpty()) {
             firstnameErrorLabel.setText("First Name cannot be empty");
@@ -220,30 +251,107 @@ public class SignUpView extends JDialog {
             } catch (SQLException throwables) {
                 throwables.printStackTrace();
             }
-            // if all the fields are valid, then send an OTP to the email
-            EmailVerification.sendOTP(emailTextField.getText());
-            // show the otp dialog
-            OtpVerificationDialog otpVerificationDialog = new OtpVerificationDialog(emailTextField.getText());
-            otpVerificationDialog.pack();
-            otpVerificationDialog.setVisible(true);
-            // if the otp is verified, then register the user
-            if (otpVerificationDialog.isVerified()) {
-                // get the hash of the password
+
+            // if all the fields are valid, then send an OTP to the email, if operation not requested by admin
+            if (!admin) {
+                EmailVerification.sendOTP(emailTextField.getText());
+                // show the otp dialog
+                OtpVerificationDialog otpVerificationDialog = new OtpVerificationDialog(emailTextField.getText());
+                otpVerificationDialog.pack();
+                otpVerificationDialog.setVisible(true);
+                if (!otpVerificationDialog.isVerified()) {
+                    JOptionPane.showMessageDialog(null, "Account creation failed");
+                    return;
+                }
+            }
+            // get the hash of the password
+            String password = String.valueOf(enterPasswordField.getPassword());
+            Hash hash = Password.hash(password).withBcrypt();
+            String sql = "INSERT INTO users (firstname, lastname, email, password_hash) VALUES ('%s','%s','%s','%s');".formatted(firstNameTextField.getText(), lastNameTextField.getText(), emailTextField.getText(), hash.getResult());
+            try {
+                Connection connection = DriverManager.getConnection(Database.databaseUrl);
+                Statement statement = connection.createStatement();
+                statement.executeUpdate(sql);
+                connection.close();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+            JOptionPane.showMessageDialog(null, "Account created successfully");
+            dispose();
+        }
+    }
+
+    private void onOk(boolean admin, int id) {
+        // check the validity of the fields
+        if (firstNameTextField.getText().isEmpty()) {
+            firstnameErrorLabel.setText("First Name cannot be empty");
+            firstnameErrorLabel.setVisible(true);
+        } else if (!firstNameTextField.getText().matches("[a-zA-Z]+")) {
+            firstnameErrorLabel.setText("First Name can only contain alphabets");
+            firstnameErrorLabel.setVisible(true);
+        } else if (lastNameTextField.getText().isEmpty()) {
+            lastnameErrorLabel.setText("Last Name cannot be empty");
+            lastnameErrorLabel.setVisible(true);
+        } else if (!lastNameTextField.getText().matches("[a-zA-Z]+")) {
+            lastnameErrorLabel.setText("Last Name can only contain alphabets");
+            lastnameErrorLabel.setVisible(true);
+        } else if (emailTextField.getText().isEmpty()) {
+            emailErrorLabel.setText("Email cannot be empty");
+            emailErrorLabel.setVisible(true);
+        } else if (!emailTextField.getText().matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            emailErrorLabel.setText("Invalid Email");
+            emailErrorLabel.setVisible(true);
+        } else if (enterPasswordField.getPassword().length != 0 && enterPasswordField.getPassword().length < 8) {
+            passwordErrorLabel.setText("Password must be at least 8 characters long");
+            passwordErrorLabel.setVisible(true);
+        } else if (!String.valueOf(confirmPasswordField.getPassword()).equals(String.valueOf(enterPasswordField.getPassword()))) {
+            mismatchPasswordErrorLabel.setText("Passwords do not match");
+            mismatchPasswordErrorLabel.setVisible(true);
+        } else {
+            // check if the email is already registered
+            try {
+                Connection connection = DriverManager.getConnection(Database.databaseUrl);
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery("SELECT * FROM users WHERE email = '" + emailTextField.getText() + "' AND id != " + id);
+                if (resultSet.next()) {
+                    emailErrorLabel.setText("Email already registered");
+                    emailErrorLabel.setVisible(true);
+                    return;
+                }
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
+
+            // if all the fields are valid, then send an OTP to the email, if operation not requested by admin
+            if (!admin) {
+                EmailVerification.sendOTP(emailTextField.getText());
+                // show the otp dialog
+                OtpVerificationDialog otpVerificationDialog = new OtpVerificationDialog(emailTextField.getText());
+                otpVerificationDialog.pack();
+                otpVerificationDialog.setVisible(true);
+                if (!otpVerificationDialog.isVerified()) {
+                    JOptionPane.showMessageDialog(null, "Profile Update failed");
+                    return;
+                }
+            }
+            String updateSql;
+            // get the hash of the password if the password field is not empty
+            if (enterPasswordField.getPassword().length != 0) {
                 String password = String.valueOf(enterPasswordField.getPassword());
                 Hash hash = Password.hash(password).withBcrypt();
-                String sql = "INSERT INTO users (firstname, lastname, email, password_hash) VALUES ('%s','%s','%s','%s');".formatted(firstNameTextField.getText(), lastNameTextField.getText(), emailTextField.getText(), hash.getResult());
-                try {
-                    Connection connection = DriverManager.getConnection(Database.databaseUrl);
-                    Statement statement = connection.createStatement();
-                    statement.executeUpdate(sql);
-                    connection.close();
-                } catch (SQLException e) {
-                    throw new RuntimeException(e);
-                }
-                JOptionPane.showMessageDialog(null, "Account created successfully");
+                updateSql = "UPDATE users SET firstname = '%s', lastname = '%s', email = '%s', password_hash = '%s' WHERE id = %d".formatted(firstNameTextField.getText(), lastNameTextField.getText(), emailTextField.getText(), hash.getResult(), id);
             } else {
-                JOptionPane.showMessageDialog(null, "Account creation failed");
+                updateSql = "UPDATE users SET firstname = '%s', lastname = '%s', email = '%s' WHERE id = %d".formatted(firstNameTextField.getText(), lastNameTextField.getText(), emailTextField.getText(), id);
             }
+            try {
+                Connection connection = DriverManager.getConnection(Database.databaseUrl);
+                Statement statement = connection.createStatement();
+                statement.executeUpdate(updateSql);
+                connection.close();
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+            JOptionPane.showMessageDialog(null, "Profile updated successfully");
             dispose();
         }
     }
@@ -251,12 +359,5 @@ public class SignUpView extends JDialog {
     private void onCancel() {
         // add your code here if necessary
         dispose();
-    }
-
-    public static void main(String[] args) {
-        SignUpView dialog = new SignUpView();
-        dialog.pack();
-        dialog.setVisible(true);
-        System.exit(0);
     }
 }
