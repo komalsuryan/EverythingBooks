@@ -1,4 +1,5 @@
 package org.amishaandkomal;
+
 import com.password4j.Hash;
 import com.password4j.Password;
 
@@ -20,7 +21,7 @@ public class DatabaseSetup {
     }
 
     private static void createTables() {
-        // SQL statement for creating a new table
+        // SQL statement for creating a new table for users
         String sql = """
                 CREATE TABLE IF NOT EXISTS users (
                 	id integer PRIMARY KEY AUTOINCREMENT,
@@ -29,21 +30,39 @@ public class DatabaseSetup {
                 	email text NOT NULL UNIQUE,
                 	password_hash text NOT NULL
                 );""";
-        execute(sql);
+        execute(sql, false);
+
+        // SQL statement for creating a new table to store OTPs
+        sql = """
+                CREATE TABLE IF NOT EXISTS otp (
+                	email text NOT NULL UNIQUE,
+                	otp integer NOT NULL,
+                	expiry DATETIME NOT NULL,
+                	PRIMARY KEY (email, otp)
+                );""";
+        execute(sql, false);
     }
 
     private static void insertData() {
         // generate password hash using password4j
         Hash hash = Password.hash("password").withBcrypt();
         // SQL statement for creating a new table
-        String sql = "INSERT INTO users (firstname, lastname, email, password_hash) VALUES ('Komal', 'Suryan', 'komal.suryan@gmail.com', '%s');".formatted(hash.getResult());
-        execute(sql);
+        String sql = """
+                INSERT INTO users (firstname, lastname, email, password_hash) VALUES
+                ('Komal', 'Suryan', 'komal.suryan@gmail.com', '%s'),
+                ('Amisha', 'Kalhan', 'amishakalhan@gmail.com', '%s');
+                """.formatted(hash.getResult(), hash.getResult());
+        execute(sql, false);
     }
 
-    public static void execute(String sql) {
+    public static void execute(String sql, boolean query) {
         try (Connection conn = DriverManager.getConnection(databaseUrl);
              Statement stmt = conn.createStatement()) {
-            stmt.execute(sql);
+            if (query) {
+                stmt.executeQuery(sql);
+            } else {
+                stmt.executeUpdate(sql);
+            }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
