@@ -3,6 +3,8 @@ package org.amishaandkomal.views;
 import com.password4j.Hash;
 import com.password4j.Password;
 import org.amishaandkomal.DatabaseSetup;
+import org.amishaandkomal.utilities.EmailVerification;
+import org.amishaandkomal.views.dialogs.OtpVerificationDialog;
 
 import javax.swing.*;
 import java.awt.*;
@@ -218,19 +220,30 @@ public class SignUpView extends JDialog {
             } catch (SQLException throwables) {
                 throwables.printStackTrace();
             }
-            // get the hash of the password
-            String password = String.valueOf(enterPasswordField.getPassword());
-            Hash hash = Password.hash(password).withBcrypt();
-            String sql = "INSERT INTO users (firstname, lastname, email, password_hash) VALUES ('%s','%s','%s','%s');".formatted(firstNameTextField.getText(), lastNameTextField.getText(), emailTextField.getText(), hash.getResult());
-            try {
-                Connection connection = DriverManager.getConnection(DatabaseSetup.databaseUrl);
-                Statement statement = connection.createStatement();
-                statement.executeUpdate(sql);
-                connection.close();
-            } catch (SQLException e) {
-                throw new RuntimeException(e);
+            // if all the fields are valid, then send an OTP to the email
+            EmailVerification.sendOTP(emailTextField.getText());
+            // show the otp dialog
+            OtpVerificationDialog otpVerificationDialog = new OtpVerificationDialog(emailTextField.getText());
+            otpVerificationDialog.pack();
+            otpVerificationDialog.setVisible(true);
+            // if the otp is verified, then register the user
+            if (otpVerificationDialog.isVerified()) {
+                // get the hash of the password
+                String password = String.valueOf(enterPasswordField.getPassword());
+                Hash hash = Password.hash(password).withBcrypt();
+                String sql = "INSERT INTO users (firstname, lastname, email, password_hash) VALUES ('%s','%s','%s','%s');".formatted(firstNameTextField.getText(), lastNameTextField.getText(), emailTextField.getText(), hash.getResult());
+                try {
+                    Connection connection = DriverManager.getConnection(DatabaseSetup.databaseUrl);
+                    Statement statement = connection.createStatement();
+                    statement.executeUpdate(sql);
+                    connection.close();
+                } catch (SQLException e) {
+                    throw new RuntimeException(e);
+                }
+                JOptionPane.showMessageDialog(null, "Account created successfully");
+            } else {
+                JOptionPane.showMessageDialog(null, "Account creation failed");
             }
-            JOptionPane.showMessageDialog(null, "Account created successfully");
             dispose();
         }
     }
