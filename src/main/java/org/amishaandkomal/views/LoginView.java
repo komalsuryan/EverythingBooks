@@ -63,6 +63,7 @@ public class LoginView {
         }
         // check if user email is in the database
         String sql = "SELECT * FROM users WHERE email = '" + emailTextField.getText() + "';";
+        int userId = -1;
         try (Connection conn = DriverManager.getConnection(Database.databaseUrl);
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -78,15 +79,39 @@ public class LoginView {
                 passwordErrorLabel.setVisible(true);
                 return;
             }
-            // login successful
-            JOptionPane.showMessageDialog(null, "Login Successful", "Success", JOptionPane.INFORMATION_MESSAGE);
+            userId = rs.getInt("id");
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+        }
+        sql = "SELECT * FROM user_roles WHERE user_id = " + userId + ";";
+        try (Connection conn = DriverManager.getConnection(Database.databaseUrl);
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            // check if user is an admin
+            if (rs.next() && rs.getString("role").equalsIgnoreCase("admin")) {
+                AdminView adminView = new AdminView(emailTextField.getText());
+                JFrame frame = new JFrame("EverythingBooks - Admin");
+                frame.setContentPane(adminView.getMainPanel());
+                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                frame.pack();
+                frame.setVisible(true);
+                SwingUtilities.getWindowAncestor(mainPanel).dispose();
+            } else {
+                JOptionPane.showMessageDialog(null, "You are not an admin", "Error", JOptionPane.ERROR_MESSAGE);
+//                UserView userView = new UserView(emailTextField.getText());
+//                JFrame frame = new JFrame("User View");
+//                frame.setContentPane(userView.userTabbedPane);
+//                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//                frame.pack();
+//                frame.setVisible(true);
+            }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     public void onSignUp() {
-        SignUpView signUpView = new SignUpView();
+        SignUpView signUpView = new SignUpView(false, false, -1);
         signUpView.pack();
         signUpView.setVisible(true);
     }
