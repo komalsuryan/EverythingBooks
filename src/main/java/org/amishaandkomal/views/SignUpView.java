@@ -2,7 +2,7 @@ package org.amishaandkomal.views;
 
 import com.password4j.Hash;
 import com.password4j.Password;
-import org.amishaandkomal.DatabaseSetup;
+import org.amishaandkomal.Database;
 import org.amishaandkomal.utilities.EmailVerification;
 import org.amishaandkomal.views.dialogs.OtpVerificationDialog;
 
@@ -110,7 +110,7 @@ public class SignUpView extends JDialog {
                 } else {
                     // check if the email is already registered
                     try {
-                        Connection connection = DriverManager.getConnection(DatabaseSetup.databaseUrl);
+                        Connection connection = DriverManager.getConnection(Database.databaseUrl);
                         Statement statement = connection.createStatement();
                         ResultSet resultSet = statement.executeQuery("SELECT * FROM users WHERE email = '" + emailTextField.getText() + "'");
                         if (resultSet.next()) {
@@ -209,7 +209,7 @@ public class SignUpView extends JDialog {
         } else {
             // check if the email is already registered
             try {
-                Connection connection = DriverManager.getConnection(DatabaseSetup.databaseUrl);
+                Connection connection = DriverManager.getConnection(Database.databaseUrl);
                 Statement statement = connection.createStatement();
                 ResultSet resultSet = statement.executeQuery("SELECT * FROM users WHERE email = '" + emailTextField.getText() + "'");
                 if (resultSet.next()) {
@@ -233,7 +233,7 @@ public class SignUpView extends JDialog {
                 Hash hash = Password.hash(password).withBcrypt();
                 String sql = "INSERT INTO users (firstname, lastname, email, password_hash) VALUES ('%s','%s','%s','%s');".formatted(firstNameTextField.getText(), lastNameTextField.getText(), emailTextField.getText(), hash.getResult());
                 try {
-                    Connection connection = DriverManager.getConnection(DatabaseSetup.databaseUrl);
+                    Connection connection = DriverManager.getConnection(Database.databaseUrl);
                     Statement statement = connection.createStatement();
                     statement.executeUpdate(sql);
                     connection.close();

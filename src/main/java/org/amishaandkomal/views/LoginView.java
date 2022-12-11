@@ -1,7 +1,7 @@
 package org.amishaandkomal.views;
 
 import com.password4j.Password;
-import org.amishaandkomal.DatabaseSetup;
+import org.amishaandkomal.Database;
 
 import javax.swing.*;
 import java.sql.Connection;
@@ -63,7 +63,7 @@ public class LoginView {
         }
         // check if user email is in the database
         String sql = "SELECT * FROM users WHERE email = '" + emailTextField.getText() + "';";
-        try (Connection conn = DriverManager.getConnection(DatabaseSetup.databaseUrl);
+        try (Connection conn = DriverManager.getConnection(Database.databaseUrl);
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             // check if user email is in the database

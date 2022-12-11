@@ -7,13 +7,10 @@ import org.amishaandkomal.views.LoginView;
 import javax.swing.*;
 import java.awt.*;
 
-import static org.amishaandkomal.DatabaseSetup.*;
-
 public class App {
     public static void main(String[] args) {
         // write your code here
         try {
-            setupDatabase();
             setUpGlobalGui();
             JFrame jFrame = new JFrame("Everything Books");
             jFrame.setContentPane(new LoginView().getMainPanel());
