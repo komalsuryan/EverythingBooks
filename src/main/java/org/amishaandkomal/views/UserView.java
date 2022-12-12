@@ -7,4 +7,11 @@ public class UserView {
     private JTabbedPane tabbedPane1;
     private JButton button1;
     private JButton button2;
+
+    public UserView(String email) {
+    }
+
+    public JPanel getMainPanel() {
+        return panel1;
+    }
 }

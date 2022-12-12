@@ -7,4 +7,11 @@ public class LibraryEmployeeView {
     private JTabbedPane tabbedPane1;
     private JButton button1;
     private JButton button2;
+
+    public LibraryEmployeeView(String email) {
+    }
+
+    public JPanel getMainPanel() {
+        return panel1;
+    }
 }

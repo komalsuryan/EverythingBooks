@@ -7,4 +7,11 @@ public class DeliveryCompanyEmployeeView {
     private JTabbedPane tabbedPane1;
     private JButton button1;
     private JButton button2;
+
+    public DeliveryCompanyEmployeeView(String email) {
+    }
+
+    public JPanel getMainPanel() {
+        return panel1;
+    }
 }
