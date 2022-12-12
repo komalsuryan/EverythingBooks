@@ -14,7 +14,7 @@ public class AddEditPublisherDialog extends JDialog {
     private JLabel headingLabel;
     private JTextField textField1;
     private JTextField textField2;
-    private JComboBox<String> comboBox1;
+    public JComboBox<String> comboBox1;
     private JLabel nameLabel;
     private JLabel locationLabel;
     private JLabel adminLabel;
