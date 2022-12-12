@@ -4,11 +4,7 @@ import com.password4j.Password;
 import org.amishaandkomal.Database;
 
 import javax.swing.*;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 
 public class LoginView {
     private JPanel mainPanel;
@@ -87,23 +83,104 @@ public class LoginView {
         try (Connection conn = DriverManager.getConnection(Database.databaseUrl);
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
-            // check if user is an admin
-            if (rs.next() && rs.getString("role").equalsIgnoreCase("admin")) {
-                AdminView adminView = new AdminView(emailTextField.getText());
-                JFrame frame = new JFrame("EverythingBooks - Admin");
-                frame.setContentPane(adminView.getMainPanel());
-                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-                frame.pack();
-                frame.setVisible(true);
-                SwingUtilities.getWindowAncestor(mainPanel).dispose();
-            } else {
-                JOptionPane.showMessageDialog(null, "You are not an admin", "Error", JOptionPane.ERROR_MESSAGE);
-//                UserView userView = new UserView(emailTextField.getText());
-//                JFrame frame = new JFrame("User View");
-//                frame.setContentPane(userView.userTabbedPane);
-//                frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-//                frame.pack();
-//                frame.setVisible(true);
+            // check if user is an admin, pub_admin, pub_employee, bs_admin, bs_employee, lib_admin, lib_employee, del_admin, del_employee or user
+            if (!rs.next()) {
+                JOptionPane.showMessageDialog(null, "User role not found", "Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            String role = rs.getString("role").toLowerCase();
+            JFrame frame;
+            switch (role) {
+                case "admin" -> {
+                    AdminView adminView = new AdminView(emailTextField.getText());
+                    frame = new JFrame("EverythingBooks - Admin");
+                    frame.setContentPane(adminView.getMainPanel());
+                    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.pack();
+                    frame.setVisible(true);
+                    SwingUtilities.getWindowAncestor(mainPanel).dispose();
+                }
+                case "pub_admin" -> {
+                    PublishingCompanyAdminView publisherAdminView = new PublishingCompanyAdminView(emailTextField.getText());
+                    frame = new JFrame("EverythingBooks - Publishing Company Admin");
+                    frame.setContentPane(publisherAdminView.getMainPanel());
+                    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.pack();
+                    frame.setVisible(true);
+                    SwingUtilities.getWindowAncestor(mainPanel).dispose();
+                }
+                case "pub_employee" -> {
+                    PublishingCompanyEmployeeView publisherEmployeeView = new PublishingCompanyEmployeeView(emailTextField.getText());
+                    frame = new JFrame("EverythingBooks - Publishing Company Employee");
+                    frame.setContentPane(publisherEmployeeView.getMainPanel());
+                    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.pack();
+                    frame.setVisible(true);
+                    SwingUtilities.getWindowAncestor(mainPanel).dispose();
+                }
+                case "bs_admin" -> {
+                    BookStoreAdminView bookStoreAdminView = new BookStoreAdminView(emailTextField.getText());
+                    frame = new JFrame("EverythingBooks - Book Store Admin");
+                    frame.setContentPane(bookStoreAdminView.getMainPanel());
+                    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.pack();
+                    frame.setVisible(true);
+                    SwingUtilities.getWindowAncestor(mainPanel).dispose();
+                }
+                case "bs_employee" -> {
+                    BookStoreEmployeeView bookStoreEmployeeView = new BookStoreEmployeeView(emailTextField.getText());
+                    frame = new JFrame("EverythingBooks - Book Store Employee");
+                    frame.setContentPane(bookStoreEmployeeView.getMainPanel());
+                    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.pack();
+                    frame.setVisible(true);
+                    SwingUtilities.getWindowAncestor(mainPanel).dispose();
+                }
+                case "lib_admin" -> {
+                    LibraryAdminView libraryAdminView = new LibraryAdminView(emailTextField.getText());
+                    frame = new JFrame("EverythingBooks - Library Admin");
+                    frame.setContentPane(libraryAdminView.getMainPanel());
+                    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.pack();
+                    frame.setVisible(true);
+                    SwingUtilities.getWindowAncestor(mainPanel).dispose();
+                }
+                case "lib_employee" -> {
+                    LibraryEmployeeView libraryEmployeeView = new LibraryEmployeeView(emailTextField.getText());
+                    frame = new JFrame("EverythingBooks - Library Employee");
+                    frame.setContentPane(libraryEmployeeView.getMainPanel());
+                    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.pack();
+                    frame.setVisible(true);
+                    SwingUtilities.getWindowAncestor(mainPanel).dispose();
+                }
+                case "del_admin" -> {
+                    DeliveryCompanyAdminView deliveryAdminView = new DeliveryCompanyAdminView(emailTextField.getText());
+                    frame = new JFrame("EverythingBooks - Delivery Admin");
+                    frame.setContentPane(deliveryAdminView.getMainPanel());
+                    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.pack();
+                    frame.setVisible(true);
+                    SwingUtilities.getWindowAncestor(mainPanel).dispose();
+                }
+                case "del_employee" -> {
+                    DeliveryCompanyEmployeeView deliveryEmployeeView = new DeliveryCompanyEmployeeView(emailTextField.getText());
+                    frame = new JFrame("EverythingBooks - Delivery Employee");
+                    frame.setContentPane(deliveryEmployeeView.getMainPanel());
+                    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.pack();
+                    frame.setVisible(true);
+                    SwingUtilities.getWindowAncestor(mainPanel).dispose();
+                }
+                default -> {
+                    UserView userView = new UserView(emailTextField.getText());
+                    frame = new JFrame("User View");
+                    frame.setContentPane(userView.getMainPanel());
+                    frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.pack();
+                    frame.setVisible(true);
+                    SwingUtilities.getWindowAncestor(mainPanel).dispose();
+                }
             }
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
