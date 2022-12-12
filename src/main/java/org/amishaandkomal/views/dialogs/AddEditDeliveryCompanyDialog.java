@@ -15,7 +15,7 @@ public class AddEditDeliveryCompanyDialog extends JDialog {
     private JButton buttonCancel;
     private JTextField nameTextField;
     private JComboBox<String> typeComboBox;
-    private JComboBox<String> adminComboBox;
+    public JComboBox<String> adminComboBox;
     private JLabel headingLabel;
     private JLabel nameLabel;
     private JLabel typeLabel;
