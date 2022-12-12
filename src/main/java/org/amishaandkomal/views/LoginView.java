@@ -79,7 +79,7 @@ public class LoginView {
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         }
-        sql = "SELECT * FROM user_roles WHERE user_id = " + userId + ";";
+        sql = "SELECT * FROM users LEFT JOIN user_roles ON user_roles.user_id = users.id WHERE id = " + userId + ";";
         try (Connection conn = DriverManager.getConnection(Database.databaseUrl);
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -88,7 +88,7 @@ public class LoginView {
                 JOptionPane.showMessageDialog(null, "User role not found", "Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            String role = rs.getString("role").toLowerCase();
+            String role = rs.getString("role") == null ? "user" : rs.getString("role");
             JFrame frame;
             switch (role) {
                 case "admin" -> {
