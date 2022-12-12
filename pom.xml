@@ -83,5 +83,10 @@
             <artifactId>mariadb-java-client</artifactId>
             <version>3.0.6</version>
         </dependency>
+        <dependency>
+            <groupId>com.cloudinary</groupId>
+            <artifactId>cloudinary-http44</artifactId>
+            <version>1.33.0</version>
+        </dependency>
     </dependencies>
 </project>
