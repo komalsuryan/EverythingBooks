@@ -1,6 +1,7 @@
 package org.amishaandkomal.views;
 
 import org.amishaandkomal.Database;
+import org.amishaandkomal.views.dialogs.AddEditBookStoreDialog;
 import org.amishaandkomal.views.dialogs.AddEditPublisherDialog;
 
 import javax.swing.*;
@@ -78,9 +79,11 @@ public class AdminView {
 
         // configure the panels
         configurePublishersPanel();
+        configureBookStorePanel();
         configureUsersPanel();
     }
 
+    //region Publishers Panel
     private void createPublishersTable() {
         // assign table data
         String sql = "SELECT publishing_company.id, name, warehouse_location, firstname, lastname FROM publishing_company, users WHERE publishing_company.admin_id = users.id";
@@ -182,6 +185,111 @@ public class AdminView {
         });
         addPublisherButton.addActionListener(e -> onAddPublisher());
     }
+    //endregion
+
+    //region Book Stores Panel
+    private void createBookStoresTable() {
+        // assign table data
+        String sql = "SELECT book_store.id, name, location, firstname, lastname FROM book_store, users WHERE book_store.admin_id = users.id";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sql);
+            bookStoresTable.setModel(Objects.requireNonNull(resultSetToTableModel(resultSet)));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        bookStoresTable.setShowGrid(true);
+        bookStoresTable.getTableHeader().setBackground(Color.RED);
+        bookStoresTable.getTableHeader().setForeground(Color.WHITE);
+    }
+
+    private void onEditBookStore(int id) {
+        AddEditBookStoreDialog addEditBookStoreDialog = new AddEditBookStoreDialog(true, id);
+        addEditBookStoreDialog.pack();
+        addEditBookStoreDialog.setVisible(true);
+        createBookStoresTable();
+    }
+
+    private void onDeleteBookStore(int id) {
+        // get the book store admin id
+        String sql = "SELECT admin_id FROM book_store WHERE id = " + id;
+        int adminId = 0;
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sql);
+            if (resultSet.next()) {
+                adminId = resultSet.getInt("admin_id");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        // delete the publisher
+        sql = "DELETE FROM book_store WHERE id = " + id;
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            Statement statement = connection.createStatement();
+            statement.executeUpdate(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        // delete the publisher admin role
+        sql = "DELETE FROM user_roles WHERE user_id = " + adminId;
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            Statement statement = connection.createStatement();
+            statement.executeUpdate(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        createPublishersTable();
+    }
+
+    private void onAddBookStore() {
+        AddEditBookStoreDialog addEditBookStoreDialog = new AddEditBookStoreDialog(false, -1);
+        addEditBookStoreDialog.pack();
+        addEditBookStoreDialog.setVisible(true);
+        createPublishersTable();
+    }
+
+    private void configureBookStorePanel() {
+        // create the table
+        createBookStoresTable();
+
+        editBookStore.setText("Edit Book Store");
+        deleteBookStore.setText("Delete Book Store");
+        addBookStore.setText("Add Book Store");
+
+        // disable the edit and delete buttons
+        editBookStore.setEnabled(false);
+        deleteBookStore.setEnabled(false);
+
+        // if any row is selected, enable the edit and delete buttons
+        bookStoresTable.getSelectionModel().addListSelectionListener(e -> {
+            if (bookStoresTable.getSelectedRow() != -1) {
+                editBookStore.setEnabled(true);
+                deleteBookStore.setEnabled(true);
+            } else {
+                editBookStore.setEnabled(false);
+                deleteBookStore.setEnabled(false);
+            }
+        });
+
+        // assign button actions
+        editBookStore.addActionListener(e -> {
+            int row = bookStoresTable.getSelectedRow();
+            if (row != -1) {
+                int id = (int) bookStoresTable.getValueAt(row, 0);
+                onEditBookStore(id);
+            }
+        });
+        deleteBookStore.addActionListener(e -> {
+            int row = bookStoresTable.getSelectedRow();
+            if (row != -1) {
+                int id = (int) bookStoresTable.getValueAt(row, 0);
+                onDeleteBookStore(id);
+            }
+        });
+        addBookStore.addActionListener(e -> onAddBookStore());
+    }
+    //endregion
 
     //region Users Panel
     private void createUsersTable() {

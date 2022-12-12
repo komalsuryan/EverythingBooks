@@ -3,7 +3,9 @@ package org.amishaandkomal.views.dialogs;
 import org.amishaandkomal.Database;
 
 import javax.swing.*;
-import java.awt.event.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.sql.*;
 import java.util.Objects;
 
@@ -133,7 +135,7 @@ public class AddEditPublisherDialog extends JDialog {
                 try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
                     PreparedStatement preparedStatement = connection.prepareStatement(insertSql);
                     preparedStatement.setInt(1, Integer.parseInt(adminId));
-                    preparedStatement.setInt(2, 2);
+                    preparedStatement.setString(2, "PUB_ADMIN");
                     preparedStatement.executeUpdate();
                 } catch (SQLException e) {
                     e.printStackTrace();
