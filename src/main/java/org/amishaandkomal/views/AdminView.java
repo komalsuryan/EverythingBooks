@@ -2,6 +2,7 @@ package org.amishaandkomal.views;
 
 import org.amishaandkomal.Database;
 import org.amishaandkomal.views.dialogs.AddEditBookStoreDialog;
+import org.amishaandkomal.views.dialogs.AddEditDeliveryCompanyDialog;
 import org.amishaandkomal.views.dialogs.AddEditLibraryDialog;
 import org.amishaandkomal.views.dialogs.AddEditPublisherDialog;
 
@@ -82,6 +83,7 @@ public class AdminView {
         configurePublishersPanel();
         configureBookStorePanel();
         configureLibrariesPanel();
+        configureDeliveryCompaniesPanel();
         configureUsersPanel();
     }
 
@@ -471,6 +473,111 @@ public class AdminView {
         addUserButton.addActionListener(e -> onAddUser());
     }
     //endregion
+
+    //region Delivery Companies Panel
+    private void createDeliveryCompaniesTable() {
+        // assign table data
+        String sql = "SELECT delivery_company.id, name, delivery_type, firstname, lastname FROM delivery_company, users WHERE delivery_company.admin_id = users.id";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sql);
+            deliveryCompaniesTable.setModel(Objects.requireNonNull(resultSetToTableModel(resultSet)));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        deliveryCompaniesTable.setShowGrid(true);
+        deliveryCompaniesTable.getTableHeader().setBackground(Color.RED);
+        deliveryCompaniesTable.getTableHeader().setForeground(Color.WHITE);
+    }
+
+    private void onEditDelivery(int id) {
+        AddEditDeliveryCompanyDialog addEditDeliveryCompanyDialog = new AddEditDeliveryCompanyDialog(true, id);
+        addEditDeliveryCompanyDialog.pack();
+        addEditDeliveryCompanyDialog.setVisible(true);
+        createDeliveryCompaniesTable();
+    }
+
+    private void onDeleteDelivery(int id) {
+        // get the library admin id
+        String sql = "SELECT admin_id FROM delivery_company WHERE id = " + id;
+        int adminId = 0;
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sql);
+            if (resultSet.next()) {
+                adminId = resultSet.getInt("admin_id");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        // delete the delivery_company
+        sql = "DELETE FROM delivery_company WHERE id = " + id;
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            Statement statement = connection.createStatement();
+            statement.executeUpdate(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        // delete the delivery_company admin role
+        sql = "DELETE FROM user_roles WHERE user_id = " + adminId;
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            Statement statement = connection.createStatement();
+            statement.executeUpdate(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        createDeliveryCompaniesTable();
+    }
+
+    private void onAddDelivery() {
+        AddEditDeliveryCompanyDialog addEditDeliveryDialog = new AddEditDeliveryCompanyDialog(false, -1);
+        addEditDeliveryDialog.pack();
+        addEditDeliveryDialog.setVisible(true);
+        createDeliveryCompaniesTable();
+    }
+
+    private void configureDeliveryCompaniesPanel() {
+        // create the table
+        createDeliveryCompaniesTable();
+
+        editDeliveryCompany.setText("Edit Delivery Company");
+        deleteDeliveryCompany.setText("Delete Delivery Company");
+        addDeliveryCompany.setText("Add Delivery Company");
+
+        // disable the edit and delete buttons
+        editDeliveryCompany.setEnabled(false);
+        deleteDeliveryCompany.setEnabled(false);
+
+        // if any row is selected, enable the edit and delete buttons
+        deliveryCompaniesTable.getSelectionModel().addListSelectionListener(e -> {
+            if (deliveryCompaniesTable.getSelectedRow() != -1) {
+                editDeliveryCompany.setEnabled(true);
+                deleteDeliveryCompany.setEnabled(true);
+            } else {
+                editDeliveryCompany.setEnabled(false);
+                deleteDeliveryCompany.setEnabled(false);
+            }
+        });
+
+        // assign button actions
+        editDeliveryCompany.addActionListener(e -> {
+            int row = deliveryCompaniesTable.getSelectedRow();
+            if (row != -1) {
+                int id = (int) deliveryCompaniesTable.getValueAt(row, 0);
+                onEditDelivery(id);
+            }
+        });
+        deleteDeliveryCompany.addActionListener(e -> {
+            int row = deliveryCompaniesTable.getSelectedRow();
+            if (row != -1) {
+                int id = (int) deliveryCompaniesTable.getValueAt(row, 0);
+                onDeleteDelivery(id);
+            }
+        });
+        addDeliveryCompany.addActionListener(e -> onAddDelivery());
+    }
+//endregion
+
 
     public JPanel getMainPanel() {
         return mainPanel;
