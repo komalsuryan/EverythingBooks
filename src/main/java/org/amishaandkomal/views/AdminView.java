@@ -25,6 +25,18 @@ public class AdminView {
     private JButton editPublisherButton;
     private JButton deletePublisherButton;
     private JButton addPublisherButton;
+    private JButton editBookStore;
+    private JButton deleteBookStore;
+    private JButton addBookStore;
+    private JTable librariesTable;
+    private JButton editLibrary;
+    private JButton deleteLibrary;
+    private JButton addLibrary;
+    private JTable bookStoresTable;
+    private JTable deliveryCompaniesTable;
+    private JButton editDeliveryCompany;
+    private JButton deleteDeliveryCompany;
+    private JButton addDeliveryCompany;
     private int adminId;
 
     public AdminView(String email) {
