@@ -7,9 +7,9 @@ import javax.swing.*;
 import java.awt.*;
 import java.sql.*;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 
-import static org.amishaandkomal.utilities.FrequentGuiMethods.onLogout;
-import static org.amishaandkomal.utilities.FrequentGuiMethods.resultSetToTableModel;
+import static org.amishaandkomal.utilities.FrequentGuiMethods.*;
 
 public class AdminView {
 
@@ -29,10 +29,10 @@ public class AdminView {
 
     public AdminView(String email) {
         // assign heading text
-        String sql = "SELECT * FROM users WHERE email = '" + email + "'";
+        AtomicReference<String> sql = new AtomicReference<>("SELECT * FROM users WHERE email = '" + email + "'");
         try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
             Statement statement = connection.createStatement();
-            ResultSet resultSet = statement.executeQuery(sql);
+            ResultSet resultSet = statement.executeQuery(sql.get());
             if (resultSet.next()) {
                 headingLabel.setText("Welcome, " + resultSet.getString("firstname"));
                 adminId = resultSet.getInt("id");
@@ -46,19 +46,27 @@ public class AdminView {
         logoutButton.setText("Logout");
 
         // assign button action
-        editInfoButton.addActionListener(e -> onEditInfo());
+        editInfoButton.addActionListener(e -> {
+            onEditInfo(adminId);
+            // reassigning the heading text
+            sql.set("SELECT * FROM users WHERE email = '" + email + "'");
+            try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+                Statement statement = connection.createStatement();
+                ResultSet resultSet = statement.executeQuery(sql.get());
+                if (resultSet.next()) {
+                    headingLabel.setText("Welcome, " + resultSet.getString("firstname"));
+                    adminId = resultSet.getInt("id");
+                }
+            } catch (SQLException e1) {
+                e1.printStackTrace();
+            }
+            createUsersTable();
+        });
         logoutButton.addActionListener(e -> onLogout());
 
         // configure the panels
         configurePublishersPanel();
         configureUsersPanel();
-    }
-
-    private void onEditInfo() {
-        SignUpView signUpView = new SignUpView(true, true, adminId);
-        signUpView.pack();
-        signUpView.setVisible(true);
-        createUsersTable();
     }
 
     private void createPublishersTable() {

@@ -1,6 +1,7 @@
 package org.amishaandkomal.utilities;
 
 import org.amishaandkomal.App;
+import org.amishaandkomal.views.SignUpView;
 
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableModel;
@@ -18,6 +19,12 @@ public class FrequentGuiMethods {
         // call the main method of the App class
         // this will restart the app
         App.main(null);
+    }
+
+    public static void onEditInfo(int userId) {
+        SignUpView signUpView = new SignUpView(true, true, userId);
+        signUpView.pack();
+        signUpView.setVisible(true);
     }
 
     public static TableModel resultSetToTableModel(ResultSet rs) {
