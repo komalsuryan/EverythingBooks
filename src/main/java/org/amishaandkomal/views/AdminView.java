@@ -2,6 +2,7 @@ package org.amishaandkomal.views;
 
 import org.amishaandkomal.Database;
 import org.amishaandkomal.views.dialogs.AddEditBookStoreDialog;
+import org.amishaandkomal.views.dialogs.AddEditLibraryDialog;
 import org.amishaandkomal.views.dialogs.AddEditPublisherDialog;
 
 import javax.swing.*;
@@ -80,6 +81,7 @@ public class AdminView {
         // configure the panels
         configurePublishersPanel();
         configureBookStorePanel();
+        configureLibrariesPanel();
         configureUsersPanel();
     }
 
@@ -290,6 +292,111 @@ public class AdminView {
         addBookStore.addActionListener(e -> onAddBookStore());
     }
     //endregion
+
+    //region libraries Panel
+    private void createLibrariesTable() {
+        // assign table data
+        String sql = "SELECT library.id, name, location, rent_period, fine, firstname, lastname FROM library, users WHERE library.admin_id = users.id";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sql);
+            librariesTable.setModel(Objects.requireNonNull(resultSetToTableModel(resultSet)));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        librariesTable.setShowGrid(true);
+        librariesTable.getTableHeader().setBackground(Color.RED);
+        librariesTable.getTableHeader().setForeground(Color.WHITE);
+    }
+
+    private void onEditLibrary(int id) {
+        AddEditLibraryDialog addEditLbraryDialog = new AddEditLibraryDialog(true, id);
+        addEditLbraryDialog.pack();
+        addEditLbraryDialog.setVisible(true);
+        createLibrariesTable();
+    }
+
+    private void onDeleteLibrary(int id) {
+        // get the library admin id
+        String sql = "SELECT admin_id FROM library WHERE id = " + id;
+        int adminId = 0;
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sql);
+            if (resultSet.next()) {
+                adminId = resultSet.getInt("admin_id");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        // delete the library
+        sql = "DELETE FROM library WHERE id = " + id;
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            Statement statement = connection.createStatement();
+            statement.executeUpdate(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        // delete the library admin role
+        sql = "DELETE FROM user_roles WHERE user_id = " + adminId;
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            Statement statement = connection.createStatement();
+            statement.executeUpdate(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        createLibrariesTable();
+    }
+
+    private void onAddLibrary() {
+        AddEditLibraryDialog addEditLibraryDialog = new AddEditLibraryDialog(false, -1);
+        addEditLibraryDialog.pack();
+        addEditLibraryDialog.setVisible(true);
+        createLibrariesTable();
+    }
+
+    private void configureLibrariesPanel() {
+        // create the table
+        createLibrariesTable();
+
+        editLibrary.setText("Edit library");
+        deleteLibrary.setText("Delete library");
+        addLibrary.setText("Add library");
+
+        // disable the edit and delete buttons
+        editLibrary.setEnabled(false);
+        deleteLibrary.setEnabled(false);
+
+        // if any row is selected, enable the edit and delete buttons
+        librariesTable.getSelectionModel().addListSelectionListener(e -> {
+            if (librariesTable.getSelectedRow() != -1) {
+                editLibrary.setEnabled(true);
+                deleteLibrary.setEnabled(true);
+            } else {
+                editLibrary.setEnabled(false);
+                deleteLibrary.setEnabled(false);
+            }
+        });
+
+        // assign button actions
+        editLibrary.addActionListener(e -> {
+            int row = librariesTable.getSelectedRow();
+            if (row != -1) {
+                int id = (int) librariesTable.getValueAt(row, 0);
+                onEditLibrary(id);
+            }
+        });
+        deleteLibrary.addActionListener(e -> {
+            int row = librariesTable.getSelectedRow();
+            if (row != -1) {
+                int id = (int) librariesTable.getValueAt(row, 0);
+                onDeleteLibrary(id);
+            }
+        });
+        addLibrary.addActionListener(e -> onAddLibrary());
+    }
+    //endregion
+
 
     //region Users Panel
     private void createUsersTable() {
