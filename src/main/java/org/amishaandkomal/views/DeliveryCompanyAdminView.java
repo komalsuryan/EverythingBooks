@@ -4,6 +4,7 @@ import org.amishaandkomal.Database;
 import org.amishaandkomal.views.dialogs.AddEditDeliveryCompanyDialog;
 
 import javax.swing.*;
+import java.awt.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -23,6 +24,7 @@ public class DeliveryCompanyAdminView {
     private JButton addEmployeeFromUsersButton;
     private JComboBox<String> addEmployeeFromUsersComboBox;
     private JLabel headingLabel;
+    private JTable deliveriesTable;
     private int delCompId;
     private int userId;
 
@@ -69,6 +71,7 @@ public class DeliveryCompanyAdminView {
         logoutButton.addActionListener(e -> onLogout());
 
         configureEmployeesPanel();
+        configureDeliveriesPanel();
     }
 
     private String getHeadingLabel() {
@@ -227,6 +230,28 @@ public class DeliveryCompanyAdminView {
             throw new RuntimeException("Could not add employee role to the database: " + e);
         }
     }
+    // endregion
+
+    // region deliveries panel
+    private void createDeliveriesTable() {
+        String deliveriesSql = "SELECT deliveries.order_id, users.firstname, users.lastname, deliveries.pickup_location, deliveries.pickup_time, deliveries.delivery_location, deliveries.delivery_status FROM deliveries, employees, users WHERE employees.delivery_company = ? AND deliveries.delivery_employee = users.id";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(deliveriesSql);
+            statement.setInt(1, delCompId);
+            ResultSet rs = statement.executeQuery();
+            deliveriesTable.setModel(Objects.requireNonNull(resultSetToTableModel(rs)));
+            deliveriesTable.setShowGrid(true);
+            deliveriesTable.getTableHeader().setBackground(Color.RED);
+            deliveriesTable.getTableHeader().setForeground(Color.WHITE);
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not get delivery company employee details from the database: " + e);
+        }
+    }
+
+    private void configureDeliveriesPanel() {
+        createDeliveriesTable();
+    }
+    // endregion
 
     public JPanel getMainPanel() {
         return panel1;
