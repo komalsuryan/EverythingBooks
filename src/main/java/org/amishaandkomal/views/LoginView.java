@@ -90,7 +90,7 @@ public class LoginView {
             }
             String role = rs.getString("role") == null ? "user" : rs.getString("role");
             JFrame frame;
-            switch (role) {
+            switch (role.toLowerCase()) {
                 case "admin" -> {
                     AdminView adminView = new AdminView(emailTextField.getText());
                     frame = new JFrame("EverythingBooks - Admin");
