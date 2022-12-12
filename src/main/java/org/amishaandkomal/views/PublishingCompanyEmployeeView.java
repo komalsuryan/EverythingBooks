@@ -1,8 +1,10 @@
 package org.amishaandkomal.views;
 
 import org.amishaandkomal.Database;
+import org.amishaandkomal.views.dialogs.AddEditBookDialog;
 
 import javax.swing.*;
+import java.awt.*;
 import java.sql.*;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
@@ -15,10 +17,13 @@ public class PublishingCompanyEmployeeView {
     private JButton logoutButton;
     private JTable ordersTable;
     private JButton processOrderButton;
-    private JButton declineOrderButton;
     private JButton completeOrderButton;
     private JButton scheduleDeliveryButton;
     private JLabel headingLabel;
+    private JTable booksTable;
+    private JButton editBookButton;
+    private JButton deleteBookButton;
+    private JButton addBookButton;
     private int userID;
     private int companyID;
 
@@ -79,7 +84,7 @@ public class PublishingCompanyEmployeeView {
             // reassigning the heading
             try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
                 Statement statement = connection.createStatement();
-                firstName.set(statement.executeQuery(firstNameQuery).getString("first_name"));
+                firstName.set(statement.executeQuery(firstNameQuery).getString("firstname"));
             } catch (Exception exception) {
                 exception.printStackTrace();
             }
@@ -87,8 +92,76 @@ public class PublishingCompanyEmployeeView {
         });
         logoutButton.addActionListener(e -> onLogout());
 
+        configureBooksPanel();
         configureOrdersPanel();
     }
+
+    //region Books Panel
+    private void createBooksTable() {
+        // assign table data
+        String sql = "SELECT books.*, publishing_company.name FROM books, publishing_company WHERE pub_id = " + companyID + " AND publishing_company.id = books.pub_id";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            Statement statement = connection.createStatement();
+            ResultSet resultSet = statement.executeQuery(sql);
+            booksTable.setModel(Objects.requireNonNull(resultSetToTableModel(resultSet)));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        booksTable.setShowGrid(true);
+        booksTable.getTableHeader().setBackground(Color.RED);
+        booksTable.getTableHeader().setForeground(Color.WHITE);
+    }
+
+    private void onEditBook(String isbn) {
+        AddEditBookDialog addEditBookDialog = new AddEditBookDialog(true, isbn);
+        addEditBookDialog.pack();
+        addEditBookDialog.setVisible(true);
+        createBooksTable();
+    }
+
+    private void onDeleteBook(String isbn) {
+        String sql = "DELETE FROM books WHERE isbn = '" + isbn + "'";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            Statement statement = connection.createStatement();
+            statement.executeUpdate(sql);
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void onAddBook() {
+        AddEditBookDialog addEditBookDialog = new AddEditBookDialog(false, "");
+        addEditBookDialog.pack();
+        addEditBookDialog.setVisible(true);
+        createBooksTable();
+    }
+
+    private void configureBooksPanel() {
+        createBooksTable();
+
+        editBookButton.setText("Edit Book");
+        deleteBookButton.setText("Delete Book");
+        addBookButton.setText("Add Book");
+
+        editBookButton.setEnabled(false);
+        deleteBookButton.setEnabled(false);
+
+        booksTable.getSelectionModel().addListSelectionListener(e -> {
+            if (booksTable.getSelectedRow() != -1) {
+                editBookButton.setEnabled(true);
+                deleteBookButton.setEnabled(true);
+            } else {
+                editBookButton.setEnabled(false);
+                deleteBookButton.setEnabled(false);
+            }
+        });
+
+        editBookButton.addActionListener(e -> onEditBook(String.valueOf(booksTable.getValueAt(booksTable.getSelectedRow(), 0))));
+        deleteBookButton.addActionListener(e -> onDeleteBook((String) booksTable.getValueAt(booksTable.getSelectedRow(), 0)));
+        addBookButton.addActionListener(e -> onAddBook());
+    }
+    //endregion
+
 
     private void createOrdersTable() {
         String sql = "(SELECT orders.order_id, books.name AS 'Book', orders.user_id, 'GENERAL USER' AS 'User type', quantity, order_status, delivery_needed, delivery_location FROM orders, books, publishing_company WHERE orders.isbn = books.isbn AND user_id IS NOT NULL AND sold_by_publisher_id = ?) UNION (SELECT orders.order_id, books.name AS 'Book', orders.library_id, 'LIBRARY' AS 'User type', quantity, order_status, delivery_needed, delivery_location FROM orders, books, publishing_company WHERE orders.isbn = books.isbn AND library_id IS NOT NULL AND sold_by_publisher_id = ?)";
@@ -135,13 +208,11 @@ public class PublishingCompanyEmployeeView {
 
         // set button text
         processOrderButton.setText("Process");
-        declineOrderButton.setText("Decline");
         scheduleDeliveryButton.setText("Schedule Delivery");
         completeOrderButton.setText("Mark Order as Completed");
 
         // disable all the buttons
         processOrderButton.setEnabled(false);
-        declineOrderButton.setEnabled(false);
         scheduleDeliveryButton.setEnabled(false);
         completeOrderButton.setEnabled(false);
 
@@ -149,7 +220,6 @@ public class PublishingCompanyEmployeeView {
         ordersTable.getSelectionModel().addListSelectionListener(e -> {
             if (ordersTable.getSelectedRow() != 1) {
                 processOrderButton.setEnabled(true);
-                declineOrderButton.setEnabled(true);
                 if (Integer.parseInt(ordersTable.getValueAt(ordersTable.getSelectedRow(), 6).toString()) == 1) {
                     scheduleDeliveryButton.setEnabled(true);
                 } else {
@@ -157,7 +227,6 @@ public class PublishingCompanyEmployeeView {
                 }
             } else {
                 processOrderButton.setEnabled(false);
-                declineOrderButton.setEnabled(false);
                 scheduleDeliveryButton.setEnabled(false);
                 completeOrderButton.setEnabled(false);
             }
