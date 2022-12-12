@@ -32,6 +32,11 @@ There can be several organizations under each enterprise. For the sake of demons
 ### Organizations under General Population
 1. Users Directory
 2. Employees Directory
+
+## Relationship between Organizations
+
+![ER Diagram](https://github.com/komalsuryan/EverythingBooks/blob/main/Diagrams/Class%20Relationship%20Diagram.png)
+
 ## System Roles
 1. __Network Admin__
    - Add, Edit and Remove Publishers
@@ -73,3 +78,6 @@ There can be several organizations under each enterprise. For the sake of demons
    - Order from publisher
    - Order from bookstore
    - Rent from library
+
+## Use Case Diagram
+![Use Case Diagram](https://github.com/komalsuryan/EverythingBooks/blob/main/Diagrams/Use%20Case%20Diagram.png)
