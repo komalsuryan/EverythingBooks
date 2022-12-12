@@ -25,8 +25,7 @@ public class EmailVerification {
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
-            throw new RuntimeException(e);
+            throw new RuntimeException("An error occurred in the verification process. " + e);
         }
         // generate 6 digit OTP
         int otp = (int) (Math.random() * 900000) + 100000;

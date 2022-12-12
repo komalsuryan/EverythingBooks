@@ -53,7 +53,7 @@ public class AdminView {
                 adminId = resultSet.getInt("id");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Error getting admin details from the database " + e);
         }
 
         // set the edit info button label
@@ -96,7 +96,7 @@ public class AdminView {
             ResultSet resultSet = statement.executeQuery(sql);
             publishersTable.setModel(Objects.requireNonNull(resultSetToTableModel(resultSet)));
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Error getting Publishers details from the database " + e);
         }
         publishersTable.setShowGrid(true);
         publishersTable.getTableHeader().setBackground(Color.RED);
@@ -121,7 +121,7 @@ public class AdminView {
                 adminId = resultSet.getInt("admin_id");
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Error getting admin details for the publishing company " + e);
         }
         // delete the publisher
         sql = "DELETE FROM publishing_company WHERE id = " + id;
@@ -129,7 +129,7 @@ public class AdminView {
             Statement statement = connection.createStatement();
             statement.executeUpdate(sql);
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Error deleting the publisher admin " + e);
         }
         // delete the publisher admin role
         sql = "DELETE FROM user_roles WHERE user_id = " + adminId;
@@ -137,7 +137,7 @@ public class AdminView {
             Statement statement = connection.createStatement();
             statement.executeUpdate(sql);
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Error deleting the user role for the publisher " + e);
         }
         createPublishersTable();
     }
@@ -200,7 +200,7 @@ public class AdminView {
             ResultSet resultSet = statement.executeQuery(sql);
             bookStoresTable.setModel(Objects.requireNonNull(resultSetToTableModel(resultSet)));
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new RuntimeException("Error getting book store data from the database " + e);
         }
         bookStoresTable.setShowGrid(true);
         bookStoresTable.getTableHeader().setBackground(Color.RED);

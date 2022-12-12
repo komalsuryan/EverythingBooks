@@ -9,7 +9,10 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Objects;
@@ -112,7 +115,12 @@ public class LibraryEmployeeView {
             rentalsTable.getTableHeader().setForeground(Color.WHITE);
             // highlight the overdue rentals
             for (int i = 0; i < rentalsTable.getRowCount(); i++) {
-                LocalDate dueDate = LocalDate.parse(rentalsTable.getValueAt(i, 5).toString());
+                LocalDate dueDate;
+                try {
+                    dueDate = LocalDate.parse(rentalsTable.getValueAt(i, 5).toString());
+                } catch (Exception e) {
+                    continue;
+                }
                 if (dueDate.isBefore(LocalDate.now())) {
                     rentalsTable.setRowSelectionInterval(i, i);
                     rentalsTable.setSelectionBackground(Color.RED);
@@ -136,7 +144,13 @@ public class LibraryEmployeeView {
                 viewIdButton.setEnabled(true);
                 updateStatusButton.setEnabled(true);
                 // check if the rental is overdue
-                LocalDate dueDate = LocalDate.parse(rentalsTable.getValueAt(rentalsTable.getSelectedRow(), 5).toString());
+                LocalDate dueDate;
+                try {
+                    dueDate = LocalDate.parse(rentalsTable.getValueAt(rentalsTable.getSelectedRow(), 5).toString());
+                } catch (Exception exception) {
+                    lateReturnButton.setEnabled(false);
+                    return;
+                }
                 lateReturnButton.setEnabled(dueDate.isBefore(LocalDate.now()));
             } else {
                 viewIdButton.setEnabled(false);
@@ -236,26 +250,27 @@ public class LibraryEmployeeView {
         }
 
         // check if the return date is after the due date
-        String dueDateSql = "SELECT due_date, return_date FROM rentals WHERE rent_id = " + rentId;
-        LocalDate dueDate = null;
-        LocalDate returnDate = null;
-        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
-            var statement = connection.createStatement();
-            ResultSet rs = statement.executeQuery(dueDateSql);
-            if (rs.next()) {
-                dueDate = LocalDate.parse(rs.getString("due_date"));
-                returnDate = LocalDate.parse(rs.getString("return_date"));
+        if (status.equals("RENTED")) {
+            String dueDateSql = "SELECT due_date, return_date FROM rentals WHERE rent_id = " + rentId;
+            LocalDate dueDate = null;
+            LocalDate returnDate = null;
+            try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+                var statement = connection.createStatement();
+                ResultSet rs = statement.executeQuery(dueDateSql);
+                if (rs.next()) {
+                    dueDate = LocalDate.parse(rs.getString("due_date"));
+                    returnDate = LocalDate.parse(rs.getString("return_date"));
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException("Could not get rentals from the database: " + e);
             }
-        } catch (SQLException e) {
-            throw new RuntimeException("Could not get rentals from the database: " + e);
+            assert returnDate != null;
+            if (returnDate.isAfter(dueDate)) {
+                JOptionPane.showMessageDialog(null, "The book was returned after the due date. An invoice will be sent to the user.");
+                // send an invoice to the user
+                onRemindLateReturn(rentId, false);
+            }
         }
-        assert returnDate != null;
-        if (returnDate.isAfter(dueDate)) {
-            JOptionPane.showMessageDialog(null, "The book was returned after the due date. An invoice will be sent to the user.");
-            // send an invoice to the user
-            onRemindLateReturn(rentId, false);
-        }
-
         configureRentalsPanel();
     }
 
@@ -278,7 +293,7 @@ public class LibraryEmployeeView {
         }
 
         // get the book name, library name, fine and due_date
-        String bookSql = "SELECT books.name, library.name, fine, due_date FROM rentals, books, libraries WHERE rentals.isbn = books.isbn AND rentals.library_id = libraries.id AND rentals.rent_id = " + rentId;
+        String bookSql = "SELECT books.name, library.name, fine, due_date FROM rentals, books, library WHERE rentals.isbn = books.isbn AND rentals.library_id = library.id AND rentals.rent_id = " + rentId;
         String bookName = "";
         String libraryName = "";
         double fine = 0;
@@ -329,7 +344,7 @@ public class LibraryEmployeeView {
                 The book %s is due at %s.
                 Return data of the book was %s.
                 You will have to pay a fine of $ %f (Based on rate of $ %f per day). Please return the book as soon as possible.
-                
+                                
                 Regards,
                 %s %s
                 %s
@@ -361,7 +376,7 @@ public class LibraryEmployeeView {
                     Due Date of the book was %s.
                     Return data of the book was %s.
                     You will have to pay a fine of $ %f (Based on rate of $ %f per day).
-                    
+                                        
                     Regards,
                     %s %s
                     %s

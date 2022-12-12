@@ -52,8 +52,7 @@ public class FrequentGuiMethods {
                 }
             };
         } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            throw new RuntimeException("Error occurred in creating the table: " + e);
         }
     }
 }
