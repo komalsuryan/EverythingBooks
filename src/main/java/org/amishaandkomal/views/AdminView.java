@@ -239,14 +239,14 @@ public class AdminView {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-        createPublishersTable();
+        createBookStoresTable();
     }
 
     private void onAddBookStore() {
         AddEditBookStoreDialog addEditBookStoreDialog = new AddEditBookStoreDialog(false, -1);
         addEditBookStoreDialog.pack();
         addEditBookStoreDialog.setVisible(true);
-        createPublishersTable();
+        createBookStoresTable();
     }
 
     private void configureBookStorePanel() {
