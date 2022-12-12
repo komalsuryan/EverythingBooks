@@ -2,6 +2,7 @@ package org.amishaandkomal.views;
 
 import org.amishaandkomal.Database;
 import org.amishaandkomal.views.dialogs.AddEditBookDialog;
+import org.amishaandkomal.views.dialogs.ScheduleDeliveryDialog;
 
 import javax.swing.*;
 import java.awt.*;
@@ -200,7 +201,112 @@ public class PublishingCompanyEmployeeView {
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
-        createOrdersTable();
+        configureOrdersPanel();
+    }
+
+    private void onScheduleDelivery(int orderId) {
+        // set the pickup location as the publisher's address
+        String pickupLocationSql = "SELECT warehouse_location FROM publishing_company WHERE id = ?";
+        ResultSet rs;
+        String pickupLocation = "";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(pickupLocationSql);
+            statement.setInt(1, companyID);
+            rs = statement.executeQuery();
+            if (rs.next()) {
+                pickupLocation = rs.getString("warehouse_location");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        // get the delivery location
+        String deliveryLocationSql = "SELECT delivery_location FROM orders WHERE order_id = ?";
+        String deliveryLocation = "";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(deliveryLocationSql);
+            statement.setInt(1, orderId);
+            rs = statement.executeQuery();
+            if (rs.next()) {
+                deliveryLocation = rs.getString("delivery_location");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+
+        // show the delivery schedule dialog
+        ScheduleDeliveryDialog scheduleDeliveryDialog = new ScheduleDeliveryDialog(pickupLocation, deliveryLocation);
+        scheduleDeliveryDialog.pack();
+        scheduleDeliveryDialog.setVisible(true);
+        if (scheduleDeliveryDialog.isCancelled) {
+            return;
+        }
+
+        // get the pickup timestamp
+        Timestamp pickupTimestamp = scheduleDeliveryDialog.pickupDateTime;
+        // if pickup timestamp is less than current timestamp + 1 hour, ask the user to select a different time
+        if (pickupTimestamp.before(new Timestamp(System.currentTimeMillis() + 3600000))) {
+            JOptionPane.showMessageDialog(null, "Pickup time must be at least 1 hour from now.");
+            return;
+        }
+
+        // get all the employees who can deliver
+        String employeeSql = "SELECT employees.user_id FROM employees WHERE employees.delivery_company IS NOT NULL AND employees.user_id NOT IN (SELECT deliveries.delivery_employee FROM deliveries WHERE deliveries.pickup_time < CURRENT_TIMESTAMP AND NOT(deliveries.delivery_status = 'COMPLETE')) LIMIT 1";
+        int employeeId;
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(employeeSql);
+            rs = statement.executeQuery();
+            if (rs.next()) {
+                employeeId = rs.getInt("user_id");
+            } else {
+                JOptionPane.showMessageDialog(null, "No employees available to deliver at this time.");
+                return;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        // create the delivery
+        String deliverySql = "INSERT INTO deliveries (order_id, delivery_employee, pickup_location, pickup_time, delivery_location, delivery_status) VALUES (?, ?, ?, ?, ?, ?)";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(deliverySql);
+            statement.setInt(1, orderId);
+            statement.setInt(2, employeeId);
+            statement.setString(3, pickupLocation);
+            statement.setTimestamp(4, pickupTimestamp);
+            statement.setString(5, deliveryLocation);
+            statement.setString(6, "SCHEDULED");
+            statement.executeUpdate();
+            JOptionPane.showMessageDialog(null, "Delivery scheduled successfully.");
+        } catch (SQLException e) {
+            throw new RuntimeException("Error in scheduling delivery: " + e);
+        }
+    }
+
+    private void onCompleteOrder(int orderId) {
+        // get the current status of the order
+        String orderStatusSql = "SELECT * FROM orders WHERE order_id = ?";
+        ResultSet rs;
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(orderStatusSql);
+            statement.setInt(1, orderId);
+            rs = statement.executeQuery();
+            rs.next();
+            if (!rs.getString("order_status").equalsIgnoreCase("PROCESSED")) {
+                return;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        String statusUpdateSql = "UPDATE orders SET order_status = ? WHERE order_id = ?";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(statusUpdateSql);
+            statement.setString(1, "COMPLETED");
+            statement.setInt(2, orderId);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        configureOrdersPanel();
     }
 
     private void configureOrdersPanel() {
@@ -218,7 +324,7 @@ public class PublishingCompanyEmployeeView {
 
         // add listeners to ordersTable
         ordersTable.getSelectionModel().addListSelectionListener(e -> {
-            if (ordersTable.getSelectedRow() != 1) {
+            if (ordersTable.getSelectedRow() != -1) {
                 processOrderButton.setEnabled(true);
                 if (Integer.parseInt(ordersTable.getValueAt(ordersTable.getSelectedRow(), 6).toString()) == 1) {
                     scheduleDeliveryButton.setEnabled(true);
@@ -233,6 +339,8 @@ public class PublishingCompanyEmployeeView {
         });
         // add action listeners to buttons
         processOrderButton.addActionListener(e -> onProcessOrder(Integer.parseInt(ordersTable.getValueAt(ordersTable.getSelectedRow(), 0).toString())));
+        scheduleDeliveryButton.addActionListener(e -> onScheduleDelivery(Integer.parseInt(ordersTable.getValueAt(ordersTable.getSelectedRow(), 0).toString())));
+        completeOrderButton.addActionListener(e -> onCompleteOrder(Integer.parseInt(ordersTable.getValueAt(ordersTable.getSelectedRow(), 0).toString())));
     }
 
     public JPanel getMainPanel() {
