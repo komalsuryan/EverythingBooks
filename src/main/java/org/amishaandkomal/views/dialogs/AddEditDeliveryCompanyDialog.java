@@ -148,13 +148,12 @@ public class AddEditDeliveryCompanyDialog extends JDialog {
             }
         } else {
             // if the user is adding, insert into the database
-            String sql = "INSERT INTO delivery_company (id, name, delivery_type, admin_id) VALUES (?, ?, ?, ?)";
+            String sql = "INSERT INTO delivery_company (id, name, delivery_type, admin_id) VALUES (NULL, ?, ?, ?)";
             try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
                 PreparedStatement preparedStatement = connection.prepareStatement(sql);
-                preparedStatement.setInt(1, id);
-                preparedStatement.setString(2, nameTextField.getText());
-                preparedStatement.setString(3, Objects.requireNonNull(typeComboBox.getSelectedItem()).toString());
-                preparedStatement.setInt(4, Integer.parseInt(adminId));
+                preparedStatement.setString(1, nameTextField.getText());
+                preparedStatement.setString(2, Objects.requireNonNull(typeComboBox.getSelectedItem()).toString());
+                preparedStatement.setInt(3, Integer.parseInt(adminId));
                 preparedStatement.executeUpdate();
             } catch (SQLException e) {
                 e.printStackTrace();
