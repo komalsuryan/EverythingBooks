@@ -251,7 +251,7 @@ public class PublishingCompanyEmployeeView {
         }
 
         // get all the employees who can deliver
-        String employeeSql = "SELECT employees.user_id FROM employees WHERE employees.delivery_company IS NOT NULL AND employees.user_id NOT IN (SELECT deliveries.delivery_employee FROM deliveries WHERE deliveries.pickup_time < CURRENT_TIMESTAMP AND NOT(deliveries.delivery_status = 'COMPLETE')) LIMIT 1";
+        String employeeSql = "SELECT employees.user_id FROM employees WHERE employees.delivery_company IS NOT NULL ORDER BY RAND() LIMIT 1";
         int employeeId;
         try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
             var statement = connection.prepareStatement(employeeSql);
