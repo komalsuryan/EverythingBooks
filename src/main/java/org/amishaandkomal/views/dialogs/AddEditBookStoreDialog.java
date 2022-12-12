@@ -19,7 +19,7 @@ public class AddEditBookStoreDialog extends JDialog {
     private JLabel adminLabel;
     private JTextField nameTextField;
     private JTextField locationTextField;
-    private JComboBox<String> adminComboBox;
+    public JComboBox<String> adminComboBox;
 
     public AddEditBookStoreDialog(boolean edit, int id) {
         setContentPane(contentPane);

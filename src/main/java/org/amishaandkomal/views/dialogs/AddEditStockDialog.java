@@ -14,9 +14,9 @@ public class AddEditStockDialog extends JDialog {
     private JButton buttonOK;
     private JButton buttonCancel;
     private JSpinner availableTextField;
-    private JCheckBox rentableCheckBox;
+    public JCheckBox rentableCheckBox;
     private JLabel availableLabel;
-    private JLabel rentableLabel;
+    public JLabel rentableLabel;
     private JLabel bookLabel;
     public JComboBox<String> selectBookComboBox;
     public long isbn;
