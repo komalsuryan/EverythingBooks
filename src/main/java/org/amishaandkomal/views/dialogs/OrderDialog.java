@@ -20,9 +20,9 @@ public class OrderDialog extends JDialog {
     private JLabel pickupOrDeliveryLabel;
     private JTextField bookNameTextField;
     public JSpinner quantitySpinner;
-    private JCheckBox deliverToYourPlaceCheckBox;
+    public JCheckBox deliverToYourPlaceCheckBox;
     private JLabel deliveryLocationLabel;
-    private JTextField deliveryLocationTextField;
+    public JTextField deliveryLocationTextField;
     public int quantity;
     public boolean deliverToYourPlace;
     public String deliveryLocation;

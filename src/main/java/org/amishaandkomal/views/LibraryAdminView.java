@@ -1,9 +1,13 @@
 package org.amishaandkomal.views;
 
 import org.amishaandkomal.Database;
+import org.amishaandkomal.utilities.EmailSender;
 import org.amishaandkomal.views.dialogs.AddEditLibraryDialog;
+import org.amishaandkomal.views.dialogs.AddEditStockDialog;
+import org.amishaandkomal.views.dialogs.OrderDialog;
 
 import javax.swing.*;
+import java.awt.*;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -23,6 +27,13 @@ public class LibraryAdminView {
     private JPanel mainPanel;
     private JComboBox<String> addEmployeeFromUsersComboBox;
     private JButton addEmployeeFromUsersButton;
+    private JTable booksTable;
+    private JButton editStockButton;
+    private JButton purchaseBookButton;
+    private JLabel purchaseBookLabel;
+    private JComboBox<String> selectBookComboBox;
+    private JTable purchasesTable;
+    private JButton addStockButton;
     private int libId;
     private int userId;
 
@@ -69,6 +80,8 @@ public class LibraryAdminView {
         logoutButton.addActionListener(e -> onLogout());
 
         configureEmployeesPanel();
+        configureBooksPanel();
+        configurePurchasesPanel();
     }
 
     private String getHeadingLabel() {
@@ -227,7 +240,255 @@ public class LibraryAdminView {
             throw new RuntimeException("Could not add employee role to the database: " + e);
         }
     }
+    // endregion
 
+    // region Books Panel
+    private void createBooksTable() {
+        String booksSql = "SELECT books.isbn, books.name, books.edition, books.author_name, publishing_company.name AS 'Publisher', books.genre, library_stockings.available_for_rent AS 'Rentable?', library_stockings.no_available AS 'Copies Available', books.retail AS 'Retail Price' FROM books, library_stockings, library, publishing_company WHERE books.isbn = library_stockings.isbn AND publishing_company.id = books.pub_id AND library.id = library_stockings.library_id AND library.id = ?";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(booksSql);
+            statement.setInt(1, libId);
+            ResultSet rs = statement.executeQuery();
+            booksTable.setModel(Objects.requireNonNull(resultSetToTableModel(rs)));
+            booksTable.setShowGrid(true);
+            booksTable.getTableHeader().setBackground(Color.RED);
+            booksTable.getTableHeader().setForeground(Color.WHITE);
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not get books from the database: " + e);
+        }
+    }
+
+    private void configureBooksPanel() {
+        createBooksTable();
+
+        // set the label
+        purchaseBookLabel.setText("Purchase Book");
+
+        // set the button texts
+        editStockButton.setText("Edit Stock");
+        purchaseBookButton.setText("Purchase Book");
+        addStockButton.setText("Add Stock");
+
+        editStockButton.setEnabled(false);
+        purchaseBookButton.setEnabled(false);
+
+        // populate the add book combo box
+        selectBookComboBox.removeAllItems();
+        selectBookComboBox.addItem("Select Book");
+        String booksSql = "SELECT * FROM books";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(booksSql);
+            ResultSet rs = statement.executeQuery();
+            while (rs.next()) {
+                selectBookComboBox.addItem(rs.getString("isbn") + " - " + rs.getString("name"));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not get books from the database: " + e);
+        }
+        selectBookComboBox.setSelectedIndex(0);
+
+        // add listener to books table
+        booksTable.getSelectionModel().addListSelectionListener(e -> {
+            if (booksTable.getSelectedRow() != -1) {
+                editStockButton.setEnabled(true);
+                selectBookComboBox.setSelectedItem(booksTable.getValueAt(booksTable.getSelectedRow(), 0) + " - " + booksTable.getValueAt(booksTable.getSelectedRow(), 1));
+            } else {
+                editStockButton.setEnabled(false);
+                selectBookComboBox.setSelectedIndex(0);
+            }
+        });
+
+        // add listener to select book combo box
+        selectBookComboBox.addActionListener(e -> purchaseBookButton.setEnabled(selectBookComboBox.getSelectedIndex() != 0));
+
+        // add listener to edit stock button
+        editStockButton.addActionListener(e -> onEditStock(Long.parseLong(Objects.requireNonNull(booksTable.getValueAt(booksTable.getSelectedRow(), 0)).toString())));
+        purchaseBookButton.addActionListener(e -> onPurchaseBook(Long.parseLong(Objects.requireNonNull(selectBookComboBox.getSelectedItem()).toString().split(" - ")[0])));
+        addStockButton.addActionListener(e -> onAddStock());
+    }
+
+    private void onEditStock(long isbn) {
+        // get the current stock and available for rent
+        String stockSql = "SELECT no_available, available_for_rent FROM library_stockings WHERE isbn = ? AND library_id = ?";
+        int stock = 0;
+        boolean availableForRent = false;
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(stockSql);
+            statement.setLong(1, isbn);
+            statement.setInt(2, libId);
+            ResultSet rs = statement.executeQuery();
+            if (rs.next()) {
+                stock = rs.getInt("no_available");
+                availableForRent = rs.getBoolean("available_for_rent");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not get stock from the database: " + e);
+        }
+        // show the edit stock dialog
+        AddEditStockDialog dialog = new AddEditStockDialog(true, isbn, stock, availableForRent);
+        dialog.pack();
+        dialog.setLocationRelativeTo(null);
+        dialog.setVisible(true);
+
+        if (dialog.isCancelled) {
+            return;
+        }
+
+        // update the stock
+        String updateStockSql = "UPDATE library_stockings SET no_available = ?, available_for_rent = ? WHERE isbn = ? AND library_id = ?";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(updateStockSql);
+            statement.setInt(1, dialog.quantity);
+            statement.setBoolean(2, dialog.rentable);
+            statement.setLong(3, isbn);
+            statement.setInt(4, libId);
+            statement.executeUpdate();
+            JOptionPane.showMessageDialog(null, "Stock updated successfully!");
+            configureBooksPanel();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not update stock in the database: " + e);
+        }
+    }
+
+    private void onPurchaseBook(long isbn) {
+        OrderDialog orderDialog = new OrderDialog(isbn);
+        orderDialog.deliverToYourPlaceCheckBox.setSelected(true);
+        orderDialog.deliveryLocationTextField.setEnabled(true);
+        // get location from library_id
+        String locationSql = "SELECT location FROM library WHERE id = ?";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(locationSql);
+            statement.setInt(1, libId);
+            ResultSet rs = statement.executeQuery();
+            if (rs.next()) {
+                orderDialog.deliveryLocationTextField.setText(rs.getString("location"));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not get location from the database: " + e);
+        }
+        orderDialog.pack();
+        orderDialog.setLocationRelativeTo(null);
+        orderDialog.setVisible(true);
+        if (orderDialog.isCancelled) {
+            return;
+        }
+        int quantity = orderDialog.quantity;
+        String deliveryAddress = orderDialog.deliverToYourPlace ? orderDialog.deliveryLocation : null;
+        // get the publisher id
+        String sql = "SELECT * FROM books WHERE isbn = ?";
+        int pubId = 0;
+        int retailPrice = 0;
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(sql);
+            statement.setLong(1, isbn);
+            var resultSet = statement.executeQuery();
+            if (resultSet.next()) {
+                pubId = resultSet.getInt("pub_id");
+                retailPrice = resultSet.getInt("retail");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        // show a dialog to confirm the order
+        int confirm = JOptionPane.showConfirmDialog(null, "Are you sure you want to order " + quantity + " copies of this book from the publisher for $ " + (quantity * retailPrice) + "?", "Confirm Order", JOptionPane.YES_NO_OPTION);
+        if (confirm != JOptionPane.YES_OPTION) {
+            return;
+        }
+
+        // insert into orders
+        sql = "INSERT INTO orders (library_id, sold_by_publisher_id, isbn, quantity, delivery_needed, delivery_location, order_status, order_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(sql);
+            statement.setInt(1, libId);
+            statement.setInt(2, pubId);
+            statement.setLong(3, isbn);
+            statement.setInt(4, quantity);
+            statement.setBoolean(5, orderDialog.deliverToYourPlace);
+            statement.setString(6, deliveryAddress);
+            statement.setString(7, "Placed");
+            statement.setNull(8, java.sql.Types.INTEGER);
+            statement.executeUpdate();
+            JOptionPane.showMessageDialog(null, "Order placed successfully! Order details along with delivery/pickup status will be sent to your email address.");
+            String email = null;
+            sql = "SELECT * FROM users WHERE id = ?";
+            try (Connection connection1 = DriverManager.getConnection(Database.databaseUrl)) {
+                var statement1 = connection1.prepareStatement(sql);
+                statement1.setInt(1, userId);
+                var resultSet = statement1.executeQuery();
+                if (resultSet.next()) {
+                    email = resultSet.getString("email");
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+            EmailSender.sendEmail(email, "Order Placed", "Your order for " + quantity + " copies of " + isbn + " has been placed successfully. You will be notified when the order is ready for pickup/delivery.");
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Error placing order! Detailed Message: " + e.getMessage());
+        }
+    }
+
+    private void onAddStock() {
+        AddEditStockDialog dialog = new AddEditStockDialog(false, 0, 0, false);
+        dialog.selectBookComboBox.removeAllItems();
+        dialog.selectBookComboBox.addItem("Select a book");
+        // populate the combo box with books that are not already stocked
+        String sql = "SELECT * FROM books WHERE isbn NOT IN (SELECT isbn FROM library_stockings WHERE library_id = ?)";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(sql);
+            statement.setInt(1, libId);
+            var resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                dialog.selectBookComboBox.addItem(resultSet.getLong("isbn") + " - " + resultSet.getString("name"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        dialog.pack();
+        dialog.setLocationRelativeTo(null);
+        dialog.setVisible(true);
+
+        if (dialog.isCancelled) {
+            return;
+        }
+
+        // insert into library_stockings
+        String insertStockSql = "INSERT INTO library_stockings (isbn, library_id, no_available, available_for_rent) VALUES (?, ?, ?, ?)";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(insertStockSql);
+            statement.setLong(1, dialog.isbn);
+            statement.setInt(2, libId);
+            statement.setInt(3, dialog.quantity);
+            statement.setBoolean(4, dialog.rentable);
+            statement.executeUpdate();
+            JOptionPane.showMessageDialog(null, "Stock added successfully!");
+            configureBooksPanel();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not add stock to the database: " + e);
+        }
+    }
+    // endregion
+
+    // region Purchase Panel
+    private void createPurchasesTable () {
+        String sql = "SELECT orders.order_id, books.name AS 'Book', publishing_company.name AS 'Publisher', quantity, order_status FROM orders, books, publishing_company WHERE orders.isbn = books.isbn AND sold_by_publisher_id = publishing_company.id AND orders.library_id = ?";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(sql);
+            statement.setInt(1, libId);
+            var resultSet = statement.executeQuery();
+            purchasesTable.setModel(Objects.requireNonNull(resultSetToTableModel(resultSet)));
+            purchasesTable.setShowGrid(true);
+            purchasesTable.getTableHeader().setBackground(Color.RED);
+            purchasesTable.getTableHeader().setForeground(Color.WHITE);
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not get purchases from the database: " + e);
+        }
+    }
+
+    private void configurePurchasesPanel () {
+        createPurchasesTable();
+    }
+    // endregion
     public JPanel getMainPanel() {
         return mainPanel;
     }
