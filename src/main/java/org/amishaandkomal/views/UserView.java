@@ -3,6 +3,7 @@ package org.amishaandkomal.views;
 import org.amishaandkomal.Database;
 import org.amishaandkomal.utilities.EmailSender;
 import org.amishaandkomal.views.dialogs.OrderDialog;
+import org.amishaandkomal.views.dialogs.RentDialog;
 
 import javax.swing.*;
 import javax.swing.table.TableModel;
@@ -10,14 +11,13 @@ import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.io.File;
+import java.sql.*;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.amishaandkomal.utilities.FrequentGuiMethods.*;
+import static org.amishaandkomal.utilities.ImageOperations.uploadImage;
 
 public class UserView {
     private JPanel panel1;
@@ -34,6 +34,7 @@ public class UserView {
     private JButton orderFromStoreButton;
     private JButton rentFromLibraryButton;
     private JTable ordersTable;
+    private JTable rentalsTable;
     private int userId;
 
     public UserView(String email) {
@@ -76,6 +77,7 @@ public class UserView {
         // configure panels
         configureBooksPanel();
         configureOrdersPanel();
+        configureRentalsPanel();
     }
 
     //region Books Panel
@@ -266,6 +268,11 @@ public class UserView {
             var statement = connection.prepareStatement(sql);
             statement.setLong(1, isbn);
             var resultSet = statement.executeQuery();
+            if (!resultSet.next()) {
+                JOptionPane.showMessageDialog(null, "No book stores have this book in stock! You can order it from the publisher.");
+                return;
+            }
+            resultSet.previous();
             var tableModel = Objects.requireNonNull(resultSetToTableModel(resultSet));
             resultsTable.setModel(tableModel);
             resultsTable.setToolTipText("Book Stores");
@@ -290,7 +297,7 @@ public class UserView {
         checkBookStoresButton.setText("Check Book Stores");
         checkLibrariesButton.setText("Check Libraries");
         orderFromStoreButton.setText("Order from Store");
-        rentFromLibraryButton.setText("Order from Library");
+        rentFromLibraryButton.setText("Rent from Library");
 
         // hide the results table and related buttons
         resultsTable.setVisible(false);
@@ -340,7 +347,86 @@ public class UserView {
         // assign button actions
         orderFromPubButton.addActionListener(e -> onOrderFromPublisher(Long.parseLong(booksTable.getValueAt(booksTable.getSelectedRow(), 0).toString())));
         checkBookStoresButton.addActionListener(e -> onCheckBookStores(Long.parseLong(booksTable.getValueAt(booksTable.getSelectedRow(), 0).toString())));
-//        checkLibrariesButton.addActionListener(e -> onCheckLibraries());
+        checkLibrariesButton.addActionListener(e -> onCheckLibraries(Long.parseLong(booksTable.getValueAt(booksTable.getSelectedRow(), 0).toString())));
+    }
+
+    private void onCheckLibraries(long isbn) {
+        String sql = "SELECT id, name, location FROM library, library_stockings WHERE library.id = library_stockings.library_id AND isbn = ? AND no_available > 0";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(sql);
+            statement.setLong(1, isbn);
+            var resultSet = statement.executeQuery();
+            if (!resultSet.next()) {
+                JOptionPane.showMessageDialog(null, "No libraries have this book in stock!");
+                return;
+            }
+            resultSet.previous();
+            var tableModel = Objects.requireNonNull(resultSetToTableModel(resultSet));
+            resultsTable.setModel(tableModel);
+            resultsTable.setToolTipText("Libraries");
+            resultsTable.setShowGrid(true);
+            resultsTable.getTableHeader().setBackground(Color.RED);
+            resultsTable.getTableHeader().setForeground(Color.WHITE);
+            resultsTable.setVisible(true);
+            rentFromLibraryButton.addActionListener(e -> onRentFromLibrary(Integer.parseInt(resultsTable.getValueAt(resultsTable.getSelectedRow(), 0).toString()), isbn));
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void onRentFromLibrary(int library_id, long isbn) {
+        String sql = "SELECT no_available FROM library_stockings WHERE library_id = ? AND isbn = ?;";
+        int availableQuantity = 0;
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(sql);
+            statement.setInt(1, library_id);
+            statement.setLong(2, isbn);
+            var resultSet = statement.executeQuery();
+            while (resultSet.next()) {
+                availableQuantity = resultSet.getInt("no_available");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        if (availableQuantity == 0) {
+            JOptionPane.showMessageDialog(null, "No available copies of this book in this library");
+            return;
+        }
+        if (availableQuantity <= 2) {
+            JOptionPane.showMessageDialog(null, "This book is not available for rent, though you can go to the library and read it there");
+        }
+        RentDialog dialog = new RentDialog();
+        dialog.setTitle("Upload ID");
+        dialog.pack();
+        dialog.setVisible(true);
+        if (dialog.isCancelled) {
+            return;
+        }
+        File file = new File(dialog.idLocation);
+        if (!file.exists()) {
+            JOptionPane.showMessageDialog(null, "File does not exist!");
+            return;
+        }
+        // get the current timestamp
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        String fileUrl = uploadImage(file, userId + "_" + timestamp);
+        if (fileUrl == null) {
+            JOptionPane.showMessageDialog(null, "Error uploading file!");
+            return;
+        }
+        String createRentSql = "INSERT INTO `rentals` (`rent_id`, `library_id`, `user_id`, `isbn`, `issue_date`, `due_date`, `status`, `return_date`, `id_image_location`) VALUES (NULL, ?, ?, ?, NULL, NULL, ?, NULL, ?);";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(createRentSql);
+            statement.setInt(1, library_id);
+            statement.setInt(2, userId);
+            statement.setLong(3, isbn);
+            statement.setString(4, "REQUESTED");
+            statement.setString(5, fileUrl);
+            statement.executeUpdate();
+            JOptionPane.showMessageDialog(null, "Rent request sent successfully!");
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
     //endregion
 
@@ -366,6 +452,30 @@ public class UserView {
     private void configureOrdersPanel() {
         createOrdersTable();
     }
+    //endregion
+
+    //region rentals panel
+    private void createRentalsTable() {
+        String sql = "SELECT rentals.rent_id, books.name AS 'Book', library.name AS 'Library', issue_date, due_date, status, return_date FROM rentals, books, library WHERE rentals.isbn = books.isbn AND rentals.library_id = library.id AND user_id = ?";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(sql);
+            statement.setInt(1, userId);
+            var resultSet = statement.executeQuery();
+            var tableModel = Objects.requireNonNull(resultSetToTableModel(resultSet));
+            rentalsTable.setModel(tableModel);
+            rentalsTable.setShowGrid(true);
+            rentalsTable.getTableHeader().setBackground(Color.RED);
+            rentalsTable.getTableHeader().setForeground(Color.WHITE);
+            rentalsTable.setVisible(true);
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void configureRentalsPanel() {
+        createRentalsTable();
+    }
+    //endregion
 
     public JPanel getMainPanel() {
         return panel1;
