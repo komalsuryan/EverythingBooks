@@ -165,7 +165,7 @@ public class PublishingCompanyEmployeeView {
 
 
     private void createOrdersTable() {
-        String sql = "(SELECT orders.order_id, books.name AS 'Book', orders.user_id, 'GENERAL USER' AS 'User type', quantity, order_status, delivery_needed, delivery_location FROM orders, books, publishing_company WHERE orders.isbn = books.isbn AND user_id IS NOT NULL AND sold_by_publisher_id = ?) UNION (SELECT orders.order_id, books.name AS 'Book', orders.library_id, 'LIBRARY' AS 'User type', quantity, order_status, delivery_needed, delivery_location FROM orders, books, publishing_company WHERE orders.isbn = books.isbn AND library_id IS NOT NULL AND sold_by_publisher_id = ?)";
+        String sql = "SELECT orders1.*, deliveries.delivery_status, users.firstname, users.lastname FROM ((SELECT orders.order_id, books.name AS 'Book', orders.user_id, 'GENERAL USER' AS 'User type', quantity, order_status, delivery_needed, delivery_location FROM orders, books, publishing_company WHERE orders.isbn = books.isbn AND user_id IS NOT NULL AND sold_by_publisher_id = ?) UNION (SELECT orders.order_id, books.name AS 'Book', orders.library_id, 'LIBRARY' AS 'User type', quantity, order_status, delivery_needed, delivery_location FROM orders, books, publishing_company WHERE orders.isbn = books.isbn AND library_id IS NOT NULL AND sold_by_publisher_id = ?)) AS orders1 LEFT JOIN deliveries ON orders1.order_id = deliveries.order_id LEFT JOIN users ON users.id = deliveries.delivery_employee";
         try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
             var statement = connection.prepareStatement(sql);
             statement.setInt(1, companyID);
@@ -280,6 +280,7 @@ public class PublishingCompanyEmployeeView {
         } catch (SQLException e) {
             throw new RuntimeException("Error in scheduling delivery: " + e);
         }
+        configureOrdersPanel();
     }
 
     private void onCompleteOrder(int orderId) {

@@ -91,7 +91,7 @@ public class BookStoreEmployeeView {
 
     // region Sales panel
     private void createOrdersTable() {
-        String sql = "SELECT DISTINCT(orders.order_id), books.name AS 'Book', orders.user_id, quantity, order_status, delivery_needed, delivery_location FROM orders, books, book_store WHERE orders.isbn = books.isbn AND user_id IS NOT NULL AND sold_by_book_store_id = ?";
+        String sql = "SELECT orders1.*, deliveries.delivery_status, users.firstname, users.lastname FROM (SELECT DISTINCT(orders.order_id), books.name AS 'Book', orders.user_id, quantity, order_status, delivery_needed, delivery_location FROM orders, books, book_store WHERE orders.isbn = books.isbn AND user_id IS NOT NULL AND sold_by_book_store_id = ?) AS orders1 LEFT JOIN deliveries ON orders1.order_id = deliveries.order_id LEFT JOIN users ON users.id = deliveries.delivery_employee";
         try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
             var statement = connection.prepareStatement(sql);
             statement.setInt(1, companyID);
@@ -177,7 +177,7 @@ public class BookStoreEmployeeView {
         }
 
         // get all the employees who can deliver
-        String employeeSql = "SELECT employees.user_id FROM employees WHERE employees.delivery_company IS NOT NULL AND employees.user_id NOT IN (SELECT deliveries.delivery_employee FROM deliveries WHERE deliveries.pickup_time < CURRENT_TIMESTAMP AND NOT(deliveries.delivery_status = 'COMPLETE')) LIMIT 1";
+        String employeeSql = "SELECT employees.user_id FROM employees WHERE employees.delivery_company IS NOT NULL ORDER BY RAND() LIMIT 1";
         int employeeId;
         try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
             var statement = connection.prepareStatement(employeeSql);
@@ -206,6 +206,7 @@ public class BookStoreEmployeeView {
         } catch (SQLException e) {
             throw new RuntimeException("Error in scheduling delivery: " + e);
         }
+        configureOrdersPanel();
     }
 
     private void onCompleteOrder(int orderId) {
