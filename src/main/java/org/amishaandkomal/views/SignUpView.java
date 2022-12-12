@@ -34,6 +34,7 @@ public class SignUpView extends JDialog {
     private JLabel emailErrorLabel;
     private JLabel passwordErrorLabel;
     private JLabel mismatchPasswordErrorLabel;
+    public String email;
 
     public SignUpView(boolean admin, boolean edit, int id) {
         setContentPane(contentPane);
@@ -352,6 +353,7 @@ public class SignUpView extends JDialog {
                 throw new RuntimeException(e);
             }
             JOptionPane.showMessageDialog(null, "Profile updated successfully");
+            email = emailTextField.getText();
             dispose();
         }
     }

@@ -19,7 +19,7 @@ public class AddEditLibraryDialog extends JDialog {
     private JLabel adminLabel;
     private JTextField nameTextField;
     private JTextField locationTextField;
-    private JComboBox<String> adminComboBox;
+    public JComboBox<String> adminComboBox;
     private JSpinner rentPeriodSpinner;
     private JSpinner fineSpinner;
     private JLabel rentPeriodLabel;
