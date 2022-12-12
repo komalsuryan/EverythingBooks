@@ -96,6 +96,7 @@ public class LoginView {
                     frame = new JFrame("EverythingBooks - Admin");
                     frame.setContentPane(adminView.getMainPanel());
                     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
                     frame.pack();
                     frame.setVisible(true);
                     SwingUtilities.getWindowAncestor(mainPanel).dispose();
@@ -105,6 +106,7 @@ public class LoginView {
                     frame = new JFrame("EverythingBooks - Publishing Company Admin");
                     frame.setContentPane(publisherAdminView.getMainPanel());
                     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
                     frame.pack();
                     frame.setVisible(true);
                     SwingUtilities.getWindowAncestor(mainPanel).dispose();
@@ -114,6 +116,7 @@ public class LoginView {
                     frame = new JFrame("EverythingBooks - Publishing Company Employee");
                     frame.setContentPane(publisherEmployeeView.getMainPanel());
                     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
                     frame.pack();
                     frame.setVisible(true);
                     SwingUtilities.getWindowAncestor(mainPanel).dispose();
@@ -123,6 +126,7 @@ public class LoginView {
                     frame = new JFrame("EverythingBooks - Book Store Admin");
                     frame.setContentPane(bookStoreAdminView.getMainPanel());
                     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
                     frame.pack();
                     frame.setVisible(true);
                     SwingUtilities.getWindowAncestor(mainPanel).dispose();
@@ -132,6 +136,7 @@ public class LoginView {
                     frame = new JFrame("EverythingBooks - Book Store Employee");
                     frame.setContentPane(bookStoreEmployeeView.getMainPanel());
                     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
                     frame.pack();
                     frame.setVisible(true);
                     SwingUtilities.getWindowAncestor(mainPanel).dispose();
@@ -141,6 +146,7 @@ public class LoginView {
                     frame = new JFrame("EverythingBooks - Library Admin");
                     frame.setContentPane(libraryAdminView.getMainPanel());
                     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
                     frame.pack();
                     frame.setVisible(true);
                     SwingUtilities.getWindowAncestor(mainPanel).dispose();
@@ -150,6 +156,7 @@ public class LoginView {
                     frame = new JFrame("EverythingBooks - Library Employee");
                     frame.setContentPane(libraryEmployeeView.getMainPanel());
                     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
                     frame.pack();
                     frame.setVisible(true);
                     SwingUtilities.getWindowAncestor(mainPanel).dispose();
@@ -159,6 +166,7 @@ public class LoginView {
                     frame = new JFrame("EverythingBooks - Delivery Admin");
                     frame.setContentPane(deliveryAdminView.getMainPanel());
                     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
                     frame.pack();
                     frame.setVisible(true);
                     SwingUtilities.getWindowAncestor(mainPanel).dispose();
@@ -168,6 +176,7 @@ public class LoginView {
                     frame = new JFrame("EverythingBooks - Delivery Employee");
                     frame.setContentPane(deliveryEmployeeView.getMainPanel());
                     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
                     frame.pack();
                     frame.setVisible(true);
                     SwingUtilities.getWindowAncestor(mainPanel).dispose();
@@ -177,6 +186,7 @@ public class LoginView {
                     frame = new JFrame("User View");
                     frame.setContentPane(userView.getMainPanel());
                     frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+                    frame.setExtendedState(JFrame.MAXIMIZED_BOTH);
                     frame.pack();
                     frame.setVisible(true);
                     SwingUtilities.getWindowAncestor(mainPanel).dispose();
