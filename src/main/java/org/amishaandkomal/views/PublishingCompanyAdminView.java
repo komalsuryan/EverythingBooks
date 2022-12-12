@@ -21,6 +21,12 @@ public class PublishingCompanyAdminView {
     private JButton editBookButton;
     private JButton deleteBookButton;
     private JButton addBookButton;
+    private JTable employeesTable;
+    private JButton addEmployeeButton;
+    private JButton removeEmployeeButton;
+    private JComboBox<String> addEmployeeFromUsersComboBox;
+    private JButton addEmployeeFromUsersButton;
+    private JTable salesTable;
     private int publishingAdminId;
     private int publishingCompanyId;
 
@@ -64,6 +70,8 @@ public class PublishingCompanyAdminView {
         buttonLogout.addActionListener(e -> onLogout());
 
         configureBooksPanel();
+        configureEmployeesPanel();
+        configureSalesPanel();
     }
 
     private void onEditCompany() {
@@ -138,6 +146,150 @@ public class PublishingCompanyAdminView {
         addBookButton.addActionListener(e -> onAddBook());
     }
     //endregion
+
+    //region Employees Panel
+    private void createEmployeesTable() {
+        String employeesSql = "SELECT users.id, users.firstname, users.lastname, users.email FROM employees, users WHERE publisher = ? AND employees.user_id = users.id";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(employeesSql);
+            statement.setInt(1, publishingCompanyId);
+            ResultSet rs = statement.executeQuery();
+            employeesTable.setModel(Objects.requireNonNull(resultSetToTableModel(rs)));
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not get publishing company employee details from the database: " + e);
+        }
+    }
+
+    private void configureEmployeesPanel() {
+        createEmployeesTable();
+
+        // set the button text
+        removeEmployeeButton.setText("Remove Employee");
+        addEmployeeButton.setText("Register New Employee");
+        addEmployeeFromUsersButton.setText("Add Employee From Users");
+
+        // disable the buttons
+        removeEmployeeButton.setEnabled(false);
+        addEmployeeFromUsersButton.setEnabled(false);
+
+        // populate the addEmployeeFromUsersComboBox
+        String usersSql = "SELECT * FROM users WHERE id NOT IN (SELECT user_id FROM user_roles)";
+        // empty the comboBox
+        addEmployeeFromUsersComboBox.removeAllItems();
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.createStatement();
+            ResultSet rs = statement.executeQuery(usersSql);
+            while (rs.next()) {
+                addEmployeeFromUsersComboBox.addItem(rs.getString("firstname") + " " + rs.getString("lastname") + " - " + rs.getString("email"));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not get book store employee details from the database: " + e);
+        }
+
+        // set the action listeners
+        employeesTable.getSelectionModel().addListSelectionListener(e -> removeEmployeeButton.setEnabled(employeesTable.getSelectedRow() != -1));
+        removeEmployeeButton.addActionListener(e -> {
+            if (employeesTable.getSelectedRow() != -1) {
+                onRemoveEmployee(Integer.parseInt(employeesTable.getValueAt(employeesTable.getSelectedRow(), 0).toString()));
+            }
+        });
+        addEmployeeFromUsersComboBox.addActionListener(e -> addEmployeeFromUsersButton.setEnabled(addEmployeeFromUsersComboBox.getSelectedIndex() != -1));
+        addEmployeeButton.addActionListener(e -> onAddEmployee());
+        addEmployeeFromUsersButton.addActionListener(e -> onAddEmployeeFromUsers());
+    }
+
+    private void onRemoveEmployee(int userId) {
+        String removeEmployeeSql = "DELETE FROM employees WHERE user_id = ?";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(removeEmployeeSql);
+            statement.setInt(1, userId);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not remove employee from the database: " + e);
+        }
+        String removeUserRolesSql = "DELETE FROM user_roles WHERE user_id = ?";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(removeUserRolesSql);
+            statement.setInt(1, userId);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not remove employee role from the database: " + e);
+        }
+        configureEmployeesPanel();
+    }
+
+    private void onAddEmployee() {
+        SignUpView dialog = new SignUpView(false, false, -1);
+        dialog.pack();
+        dialog.setVisible(true);
+        String email = dialog.email;
+        setPrivileges(email);
+        configureEmployeesPanel();
+    }
+
+    private void onAddEmployeeFromUsers() {
+        String email = Objects.requireNonNull(addEmployeeFromUsersComboBox.getSelectedItem()).toString().split(" - ")[1];
+        setPrivileges(email);
+        configureEmployeesPanel();
+    }
+
+    private void setPrivileges(String email) {
+        // get the user id from the email
+        String userIdSql = "SELECT id FROM users WHERE email = ?";
+        int userId = 0;
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(userIdSql);
+            statement.setString(1, email);
+            ResultSet rs = statement.executeQuery();
+            if (rs.next()) {
+                userId = rs.getInt("id");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not get user id from the database: " + e);
+        }
+        // add the user to the employees table
+        String addEmployeeSql = "INSERT INTO employees (user_id, publishing_company) VALUES (?, ?)";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(addEmployeeSql);
+            statement.setInt(1, userId);
+            statement.setInt(2, publishingCompanyId);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not add employee to the database: " + e);
+        }
+        // add the user to the user_roles table
+        String addUserRolesSql = "INSERT INTO user_roles (user_id, role) VALUES (?, ?)";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(addUserRolesSql);
+            statement.setInt(1, userId);
+            statement.setString(2, "PUB_EMPLOYEE");
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Could not add employee role to the database: " + e);
+        }
+    }
+    //endregion
+
+    //region Sales Panel
+    // region Sales Panel
+    private void createOrdersTable() {
+        String sql = "SELECT DISTINCT(orders.order_id), books.name AS 'Book', orders.user_id AS 'Purchaser ID', 'General User' AS 'Purchaser Type', quantity, order_status, delivery_needed, delivery_location FROM orders, books, publishing_company WHERE orders.isbn = books.isbn AND user_id IS NOT NULL AND sold_by_publisher_id = ? UNION SELECT DISTINCT(orders.order_id), books.name AS 'Book', orders.book_store_id AS 'Purchaser ID', 'Book Store' AS 'Purchaser Type', quantity, order_status, delivery_needed, delivery_location FROM orders, books, publishing_company WHERE orders.isbn = books.isbn AND orders.book_store_id IS NOT NULL AND sold_by_publisher_id = ? UNION SELECT DISTINCT(orders.order_id), books.name AS 'Book', orders.library_id AS 'Purchaser ID', 'Library' AS 'Purchaser Type', quantity, order_status, delivery_needed, delivery_location FROM orders, books, publishing_company WHERE orders.isbn = books.isbn AND orders.library_id IS NOT NULL AND sold_by_publisher_id = ?";
+        try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
+            var statement = connection.prepareStatement(sql);
+            statement.setInt(1, publishingCompanyId);
+            statement.setInt(2, publishingCompanyId);
+            statement.setInt(3, publishingCompanyId);
+            ResultSet rs = statement.executeQuery();
+            salesTable.setModel(Objects.requireNonNull(resultSetToTableModel(rs)));
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void configureSalesPanel() {
+        createOrdersTable();
+    }
+    // endregion
 
     public JPanel getMainPanel() {
         return panel1;

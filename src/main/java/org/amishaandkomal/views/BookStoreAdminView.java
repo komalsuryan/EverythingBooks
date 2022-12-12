@@ -492,7 +492,7 @@ public class BookStoreAdminView {
 
     // region Sales Panel
     private void createOrdersTable() {
-        String sql = "SELECT orders.order_id, books.name AS 'Book', orders.user_id, quantity, order_status, delivery_needed, delivery_location FROM orders, books, book_store WHERE orders.isbn = books.isbn AND user_id IS NOT NULL AND sold_by_book_store_id = ?";
+        String sql = "SELECT DISTINCT(orders.order_id), books.name AS 'Book', orders.user_id, quantity, order_status, delivery_needed, delivery_location FROM orders, books, book_store WHERE orders.isbn = books.isbn AND user_id IS NOT NULL AND sold_by_book_store_id = ?";
         try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
             var statement = connection.prepareStatement(sql);
             statement.setInt(1, storeId);

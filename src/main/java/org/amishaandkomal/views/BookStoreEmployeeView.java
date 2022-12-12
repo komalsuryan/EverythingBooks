@@ -31,7 +31,7 @@ public class BookStoreEmployeeView {
             rs.next();
             userID = rs.getInt("id");
         } catch (Exception e) {
-            e.printStackTrace();
+            throw new RuntimeException("Error getting BookStore Employee: " + e);
         }
         // get the company id from the user id
         String companyIDQuery = "SELECT book_store FROM employees WHERE user_id = " + userID;
@@ -91,7 +91,7 @@ public class BookStoreEmployeeView {
 
     // region Sales panel
     private void createOrdersTable() {
-        String sql = "SELECT orders.order_id, books.name AS 'Book', orders.user_id, quantity, order_status, delivery_needed, delivery_location FROM orders, books, book_store WHERE orders.isbn = books.isbn AND user_id IS NOT NULL AND sold_by_book_store_id = ?";
+        String sql = "SELECT DISTINCT(orders.order_id), books.name AS 'Book', orders.user_id, quantity, order_status, delivery_needed, delivery_location FROM orders, books, book_store WHERE orders.isbn = books.isbn AND user_id IS NOT NULL AND sold_by_book_store_id = ?";
         try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
             var statement = connection.prepareStatement(sql);
             statement.setInt(1, companyID);
