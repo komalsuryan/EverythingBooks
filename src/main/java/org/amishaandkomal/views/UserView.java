@@ -155,6 +155,7 @@ public class UserView {
             statement.setNull(8, java.sql.Types.INTEGER);
             statement.executeUpdate();
             JOptionPane.showMessageDialog(null, "Order placed successfully! Order details along with delivery/pickup status will be sent to your email address.");
+            createOrdersTable();
             String email = null;
             sql = "SELECT * FROM users WHERE id = ?";
             try (Connection connection1 = DriverManager.getConnection(Database.databaseUrl)) {
@@ -230,6 +231,7 @@ public class UserView {
             statement.setNull(8, java.sql.Types.INTEGER);
             statement.executeUpdate();
             JOptionPane.showMessageDialog(null, "Order placed successfully! Order details along with delivery/pickup status will be sent to your email address.");
+            createOrdersTable();
             String email = null;
             sql = "SELECT * FROM users WHERE id = ?";
             try (Connection connection1 = DriverManager.getConnection(Database.databaseUrl)) {
@@ -344,10 +346,11 @@ public class UserView {
 
     //region Orders Panel
     private void createOrdersTable() {
-        String sql = "SELECT orders.order_id, books.name AS 'Book', COALESCE(publishing_company.name, book_store.name) AS 'Ordered From', quantity, order_status FROM `orders`, `publishing_company`, `book_store`, `books` WHERE (orders.sold_by_publisher_id = publishing_company.id OR orders.sold_by_book_store_id = book_store.id) AND books.isbn = orders.isbn AND user_id = ?";
+        String sql = "(SELECT orders.order_id, books.name AS 'Book', publishing_company.name AS 'Purchased From', 'Publisher' AS 'Seller type', quantity, order_status FROM orders, books, publishing_company WHERE orders.isbn = books.isbn AND sold_by_publisher_id IS NOT NULL AND sold_by_publisher_id = publishing_company.id AND user_id = ?) UNION (SELECT orders.order_id, books.name AS 'Book', book_store.name AS 'Purchased From', 'Book Store' AS 'Seller type', quantity, order_status FROM orders, books, book_store WHERE orders.isbn = books.isbn AND sold_by_book_store_id IS NOT NULL AND sold_by_book_store_id = book_store.id AND user_id = ?)";
         try (Connection connection = DriverManager.getConnection(Database.databaseUrl)) {
             var statement = connection.prepareStatement(sql);
             statement.setInt(1, userId);
+            statement.setInt(2, userId);
             var resultSet = statement.executeQuery();
             var tableModel = Objects.requireNonNull(resultSetToTableModel(resultSet));
             ordersTable.setModel(tableModel);
