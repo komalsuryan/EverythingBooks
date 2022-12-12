@@ -27,6 +27,6 @@ public class ImageOperations {
     }
 
     public static String getScaledImageURL(String imageURL) {
-        return imageURL.replace("upload/", "upload/w_" + 200 + ",h_" + 150 + ",c_fill/");
+        return imageURL.replace("upload/", "upload/w_" + 300 + ",h_" + 225 + ",c_fit/");
     }
 }
