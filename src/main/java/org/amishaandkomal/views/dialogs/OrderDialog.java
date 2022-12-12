@@ -3,7 +3,9 @@ package org.amishaandkomal.views.dialogs;
 import org.amishaandkomal.Database;
 
 import javax.swing.*;
-import java.awt.event.*;
+import java.awt.event.KeyEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -17,7 +19,7 @@ public class OrderDialog extends JDialog {
     private JLabel quantityLabel;
     private JLabel pickupOrDeliveryLabel;
     private JTextField bookNameTextField;
-    private JSpinner quantitySpinner;
+    public JSpinner quantitySpinner;
     private JCheckBox deliverToYourPlaceCheckBox;
     private JLabel deliveryLocationLabel;
     private JTextField deliveryLocationTextField;
